@@ -1,0 +1,74 @@
+# Makefile for {{ projectLanguage }} project
+TOP_DIR=$(shell dirname $(abspath $(firstword $(MAKEFILE_LIST))))
+
+# Variables
+GIT_PROVIDER := {{ gitProvider }}
+PORJECGT_USER := {{ projectUser }}
+PROJECT_NAME := {{ projectName }}
+
+# Functions
+
+# Targets
+
+.DEFAULT_GOAL := help
+
+.PHONY: help
+help:
+	@echo "Usage: make [target]"
+	@echo "Targets:"
+	@echo "	 help: Show this help message"
+	@echo "	 install: Install packages for the project"
+	@echo "	 update: Update packages for the project"
+	@echo "	 build: Build the project"
+	@echo "	 run: Run the project"
+	@echo "	 test: Test the project"
+	@echo "	 lint: Lint the project"
+	@echo "	 clean: Clean the project"
+
+.PHONY: install
+install:
+	@echo "Install packages for the project"
+	export GO111MODULE=on
+	go mod init ${GIT_PROVIDER}/${PROJECT_USER}/${PROJECT_NAME}
+	go mod tidy
+	go mod vendor
+
+.PHONY: update
+update:
+	@echo "Update packages for the project"
+	export GO111MODULE=on
+	go get -u
+	go mod tidy
+	go mod vendor
+
+.PHONY: build
+build:
+	@echo "Build the project"
+	go build
+
+.PHONY: run
+run:
+	@echo "Run the project"
+	go build
+	./${PROJECT_NAME}
+
+.PHONY: test
+test:
+	@echo "Test the project"
+	go build
+	go test -v
+	go test -cover
+
+.PHONY: lint
+lint:
+	@echo "Lint the project"
+	go build
+	golangci-lint run
+
+.PHONY: clean
+clean:
+	@echo "Clean the project"
+	go clean -i -r -cache -testcache -modcache
+	rm -rf ${PROJECT_DIR:?}/${PROJECT_NAME}
+	rm -rf ${PROJECT_DIR:?}/data/bin
+	rm -rf ${PROJECT_DIR:?}/{bin,dist,target,vendor}

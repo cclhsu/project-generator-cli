@@ -1,0 +1,26 @@
+// - [](<https://doc.rust-lang.org/cargo/commands/cargo-test.html>)
+// - [](<https://doc.rust-lang.org/cargo/guide/test.html>)
+// - [](<https://doc.rust-lang.org/rust-by-example/testing/unit_testing.html>)
+// - [](<https://doc.rust-lang.org/book/ch11-00-testing.html>)
+// - [](<https://github.com/rust-lang/book>)
+
+use super::*;
+
+#[test]
+fn test_hello_func() {
+    let mut arr: [i32;0] = [0;0];
+    assert_eq!(hello_func(&mut arr), 0);
+}
+
+#[test]
+fn hello_func_test() {
+    let mut arr: [i32;0] = [0;0];
+    assert_eq!(hello_func(&mut arr), 0);
+}
+
+#[test]
+#[ignore]
+fn ignored_test() {
+    let mut arr: [i32;0] = [0;0];
+    assert_eq!(hello_func(&mut arr), 0);
+}

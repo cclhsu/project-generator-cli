@@ -19,7 +19,8 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "copy-template": "node copy-template.js",
     "build": "rimraf dist && nest build && npm run copy-template",
-    "clean": "rimraf node_modules dist coverage .nyc_output .eslintcache .cache .jest"
+    "clean": "rimraf node_modules dist coverage .nyc_output .eslintcache .cache .jest",
+    "pack": "npm run build && mkdir bin && npm pack --pack-destination bin"
   },
   "dependencies": {
     "@nestjs/common": "^10.1.3",

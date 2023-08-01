@@ -1,0 +1,64 @@
+# Makefile for {{ projectLanguage }} project
+TOP_DIR=$(shell dirname $(abspath $(firstword $(MAKEFILE_LIST))))
+
+# Variables
+GIT_PROVIDER := {{ gitProvider }}
+PORJECGT_USER := {{ projectUser }}
+PROJECT_NAME := {{ projectLanguage }}-{{ projectName }}-{{ projectType }}
+
+# Functions
+
+# Targets
+
+.DEFAULT_GOAL := help
+
+.PHONY: help
+help:
+	@echo "Usage: make [target]"
+	@echo "Targets:"
+	@echo "	 help: Show this help message"
+	@echo "	 install: Install packages for the project"
+	@echo "	 update: Update packages for the project"
+	@echo "	 build: Build the project"
+	@echo "	 run: Run the project"
+	@echo "	 test: Test the project"
+	@echo "	 lint: Lint the project"
+	@echo "	 clean: Clean the project"
+
+.PHONY: install
+install:
+	@echo "Install packages for the project"
+	cargo init --bin
+
+.PHONY: update
+update:
+	@echo "Update packages for the project"
+	cargo update
+
+.PHONY: build
+build:
+	@echo "Build the project"
+	cargo build
+
+.PHONY: run
+run:
+	@echo "Run the project"
+	çargo run
+
+.PHONY: test
+test:
+	@echo "Test the project"
+	cargo test
+
+.PHONY: lint
+lint:
+	@echo "Lint the project"
+	cargo clippy --fix
+
+.PHONY: clean
+clean:
+	@echo "Clean the project"
+    rm -rf $(TOP_DIR)/$(PROJECT_NAME)
+    rm -rf $(TOP_DIR)/data/bin
+    rm -rf $(TOP_DIR)/target
+    rm -rf .git .gitignore Cargo.lock Cargo.toml
