@@ -3,7 +3,7 @@ import { Question, QuestionSet } from 'nest-commander';
 @QuestionSet({ name: 'project-skeleton-questions' })
 export class ProjectSkeletonQuestions {
   @Question({
-    message: 'Enter your project-skeleton:',
+    message: 'Enter project-skeleton:',
     name: 'projectSkeleton',
     type: 'list',
     default: 'default',

@@ -3,7 +3,7 @@ import { Question, QuestionSet } from 'nest-commander';
 @QuestionSet({ name: 'project-user-questions' })
 export class ProjectUserQuestions {
   @Question({
-    message: 'Enter your project-user:',
+    message: 'Enter project-user:',
     name: 'projectUser',
     type: 'input',
     validate: (val: string) => {

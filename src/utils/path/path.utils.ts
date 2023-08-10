@@ -1,25 +1,39 @@
+import { Logger } from '@nestjs/common';
+import * as fs from 'fs-extra';
 import * as os from 'os';
 import * as path from 'path';
 
-// Resolve the ${HOME} placeholder in the given path
+const logger: Logger = new Logger('PathUtils');
+
+/**
+ * Resolves the ${HOME} placeholder in the given path.
+ * @param filePath - The file path that may contain the ${HOME} placeholder.
+ * @returns The resolved file path.
+ */
 export function resolveHomePath(filePath: string): string {
-  // Check if the path contains the ${HOME} placeholder
-  if (filePath.includes('${HOME}')) {
+  if (typeof filePath === 'string' && filePath.includes('${HOME}')) {
     try {
-      // Get the user's home directory using the os.homedir() method
       const homeDir = os.homedir() as string;
-
-      // Replace the ${HOME} placeholder with the actual home directory path
       const resolvedPath = filePath.replace('${HOME}', homeDir);
-
-      // Normalize the path to handle any platform-specific path separators
       return path.normalize(resolvedPath);
     } catch (error: any) {
-      console.log('Could not resolve ${HOME} in ${filePath}: ${error.message}');
+      logger.log(`Could not resolve \${HOME} in ${filePath}: ${error.message}`);
       return filePath;
     }
   } else {
-    // If the path does not contain the ${HOME} placeholder, return the original path
     return filePath;
   }
+}
+
+/**
+ * Resolves the ~ placeholder in the given path.
+ * @param filePath - The file path that may start with the ~ placeholder.
+ * @returns The resolved file path.
+ */
+export function resolveTildeInPath(filePath: string): string {
+  if (typeof filePath === 'string' && filePath.startsWith('~')) {
+    const resolvedPath = path.join(os.homedir(), filePath.slice(1));
+    return path.normalize(resolvedPath);
+  }
+  return filePath;
 }

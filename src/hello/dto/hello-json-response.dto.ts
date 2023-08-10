@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString } from 'class-validator';
 
-export class DataDto {
+export class DataDTO {
   constructor(message: string) {
     this.message = message;
   }
@@ -10,10 +10,10 @@ export class DataDto {
   message: string;
 }
 
-export class HelloJsonResponseDto {
-  constructor(data: DataDto) {
+export class HelloJsonResponseDTO {
+  constructor(data: DataDTO) {
     this.data = data;
   }
-  @ApiProperty({ type: DataDto, required: false })
-  data: DataDto;
+  @ApiProperty({ type: DataDTO, required: false })
+  data: DataDTO;
 }

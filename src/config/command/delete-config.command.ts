@@ -6,8 +6,8 @@ import {
 } from 'nest-commander';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '../config.service';
-import { ProjectCommonCommandOptionsDto } from 'src/common/command/dto/project-common-command-options.dto';
-import { ConfirmDeleteAnswerDto } from '../../common/command/dto/confirm-delete-answer.dto';
+import { ProjectCommonCommandOptionsDTO } from 'src/common/command/dto/project-common-command-options.dto';
+import { ConfirmDeleteAnswerDTO } from '../../common/command/dto/confirm-delete-answer.dto';
 import { getProjectName } from 'src/utils/project-name/project-name.utils';
 
 @Injectable()
@@ -28,7 +28,7 @@ export class DeleteConfigCommand extends CommandRunner {
     passedParams: string[],
     options?: Record<string, any> | undefined,
   ): Promise<void> {
-    this.logger.log('>>> Deleting config');
+    this.logger.debug('>>> Deleting config');
     // this.logger.debug(passedParams);
     // this.logger.debug(options);
 
@@ -39,17 +39,17 @@ export class DeleteConfigCommand extends CommandRunner {
       return;
     }
 
-    // const projectCommonCommandOptionsDto: ProjectCommonCommandOptionsDto = {
+    // const projectCommonCommandOptionsDTO: ProjectCommonCommandOptionsDTO = {
     //   ...options,
     // };
 
-    const confirmDeleteAnswerDto: ConfirmDeleteAnswerDto =
-      await this.inquirer.ask<ConfirmDeleteAnswerDto>(
+    const confirmDeleteAnswerDTO: ConfirmDeleteAnswerDTO =
+      await this.inquirer.ask<ConfirmDeleteAnswerDTO>(
         'confirm-delete-questions',
         options,
       );
 
-    if (!confirmDeleteAnswerDto.confirmDelete) {
+    if (!confirmDeleteAnswerDTO.confirmDelete) {
       console.log('Config deletion cancelled');
       return;
     }
@@ -61,4 +61,4 @@ export class DeleteConfigCommand extends CommandRunner {
 // npm run build
 // nestjs build
 // node ./dist/cmd.main config delete --help
-// node ./dist/cmd.main config delete --uuid 123
+// node ./dist/cmd.main config delete --uuid 00000000-0000-0000-0000-000000000001

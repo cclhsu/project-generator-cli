@@ -1,17 +1,17 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { HelloStringResponseDto } from './dto/hello-string-response.dto';
-import { HelloJsonResponseDto } from './dto/hello-json-response.dto';
+import { HelloStringResponseDTO } from './dto/hello-string-response.dto';
+import { HelloJsonResponseDTO } from './dto/hello-json-response.dto';
 // import { Response } from 'express';
 
 @Injectable()
 export class HelloService {
-  getHelloString(): HelloStringResponseDto {
-    const helloStringResponse: HelloStringResponseDto = 'Hello World!';
+  getHelloString(): HelloStringResponseDTO {
+    const helloStringResponse: HelloStringResponseDTO = 'Hello World!';
     return helloStringResponse;
   }
 
-  getHelloJson(): HelloJsonResponseDto {
-    const helloJsonResponse: HelloJsonResponseDto = {
+  getHelloJson(): HelloJsonResponseDTO {
+    const helloJsonResponse: HelloJsonResponseDTO = {
       data: { message: 'Hello, world!' },
     };
     return helloJsonResponse;

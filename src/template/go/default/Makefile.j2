@@ -1,74 +1,117 @@
-# Makefile for {{ projectLanguage }} project
-TOP_DIR=$(shell dirname $(abspath $(firstword $(MAKEFILE_LIST))))
-
+#*******************************************************************************
+# Makefile for {{ projectName }}/{{ projectType }}
+#*******************************************************************************
+# Purpose:
+#   This script is used to build, test, and deploy the project.
+#*******************************************************************************
+# Usage:
+#   make [target]
+#*******************************************************************************
+# History:
+#   2021/09/01  Clark Hsu  First release
+#*******************************************************************************
+#*******************************************************************************
 # Variables
+TOP_DIR=$(shell dirname $(abspath $(firstword $(MAKEFILE_LIST))))
 GIT_PROVIDER := {{ gitProvider }}
 PORJECGT_USER := {{ projectUser }}
 PROJECT_NAME := {{ projectName }}
 
+#*******************************************************************************
+#*******************************************************************************
 # Functions
-
-# Targets
-
+#*******************************************************************************
+#*******************************************************************************
+# Main
+#*******************************************************************************
 .DEFAULT_GOAL := help
 
 .PHONY: help
 help:
 	@echo "Usage: make [target]"
 	@echo "Targets:"
-	@echo "	 help: Show this help message"
-	@echo "	 install: Install packages for the project"
-	@echo "	 update: Update packages for the project"
-	@echo "	 build: Build the project"
-	@echo "	 run: Run the project"
-	@echo "	 test: Test the project"
-	@echo "	 lint: Lint the project"
-	@echo "	 clean: Clean the project"
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "	\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+
+.PHONY: init
+init:  ## Initialize the project
+	@echo ">>> $@ ..."
+	@echo "Initialize the project"
+	@echo ">>> $@ ... Done"
 
 .PHONY: install
-install:
+install:  ## Install packages for the project
+	@echo ">>> $@ ..."
 	@echo "Install packages for the project"
 	export GO111MODULE=on
 	go mod init ${GIT_PROVIDER}/${PROJECT_USER}/${PROJECT_NAME}
 	go mod tidy
 	go mod vendor
+	@echo ">>> $@ ... Done"
 
 .PHONY: update
-update:
+update:  ## Update packages for the project
+	@echo ">>> $@ ..."
 	@echo "Update packages for the project"
 	export GO111MODULE=on
 	go get -u
 	go mod tidy
 	go mod vendor
+	@echo ">>> $@ ... Done"
 
 .PHONY: build
-build:
+build:  ## Build the project
+	@echo ">>> $@ ..."
 	@echo "Build the project"
 	go build
+	@echo ">>> $@ ... Done"
 
 .PHONY: run
-run:
+run:  ## Run the project
+	@echo ">>> $@ ..."
 	@echo "Run the project"
 	go build
 	./${PROJECT_NAME}
+	@echo ">>> $@ ... Done"
 
 .PHONY: test
-test:
+test:  ## Test the project
+	@echo ">>> $@ ..."
 	@echo "Test the project"
 	go build
 	go test -v
 	go test -cover
+	@echo ">>> $@ ... Done"
 
 .PHONY: lint
-lint:
+lint:  ## Lint the project
+	@echo ">>> $@ ..."
 	@echo "Lint the project"
 	go build
 	golangci-lint run
+	@echo ">>> $@ ... Done"
+
+.PHONY: package
+package:  ## Package the project
+	@echo ">>> $@ ..."
+	@echo "Package the project"
+	@echo ">>> $@ ... Done"
+
+.PHONY: deploy
+deploy:  ## Deploy the project
+	@echo ">>> $@ ..."
+	@echo "Deploy the project"
+	@echo ">>> $@ ... Done"
 
 .PHONY: clean
-clean:
+clean:  ## Clean the project
+	@echo ">>> $@ ..."
 	@echo "Clean the project"
 	go clean -i -r -cache -testcache -modcache
 	rm -rf ${PROJECT_DIR:?}/${PROJECT_NAME}
 	rm -rf ${PROJECT_DIR:?}/data/bin
 	rm -rf ${PROJECT_DIR:?}/{bin,dist,target,vendor}
+	@echo ">>> $@ ... Done"
+
+#*******************************************************************************
+# EOF
+#*******************************************************************************

@@ -1,41 +1,59 @@
+import { Logger } from '@nestjs/common';
 import * as fs from 'fs';
+import * as path from 'path';
+import { createDirectory } from '../directory/directory.utils';
 
-export function readArrayFromJSON<T>(filePath: string): T[] {
+const logger: Logger = new Logger('JsonUtils');
+
+export async function readArrayFromJSON<T>(filePath: string): Promise<T[]> {
   try {
     const jsonData = fs.readFileSync(filePath, 'utf8');
     return JSON.parse(jsonData) as T[];
   } catch (error: any) {
-    console.error('Error reading JSON file:', error.message);
+    logger.error('Error reading JSON file:', error.message);
     return [];
   }
 }
 
-export function writeArrayToJSON<T>(filePath: string, data: T[]): void {
-  const fileDirectory = filePath.substring(0, filePath.lastIndexOf('/'));
-  if (!fs.existsSync(fileDirectory)) {
-    fs.mkdirSync(fileDirectory, { recursive: true });
+export async function writeArrayToJSON<T>(
+  filePath: string,
+  data: T[],
+): Promise<void> {
+  const fileDirectory = path.dirname(filePath);
+  try {
+    createDirectory(fileDirectory);
+    const jsonData = JSON.stringify(data, null, 2);
+    fs.writeFileSync(filePath, jsonData, 'utf8');
+  } catch (error: any) {
+    logger.error('Error writing JSON file:', error.message);
+    throw error; // Optionally, you can rethrow the error to handle it elsewhere.
   }
-  const jsonData = JSON.stringify(data, null, 2);
-  fs.writeFileSync(filePath, jsonData, 'utf8');
 }
 
-export function readSingleFromJSON<T>(filePath: string): T {
+export async function readSingleFromJSON<T>(filePath: string): Promise<T> {
   try {
-    const jsonData = fs.readFileSync(filePath, 'utf8');
+    const jsonData = await fs.readFileSync(filePath, 'utf8');
     return JSON.parse(jsonData) as T;
   } catch (error: any) {
-    console.error('Error reading JSON file:', error.message);
-    return {} as T;
+    logger.error('Error reading JSON file:', error.message);
+    throw error; // Optionally, you can rethrow the error to handle it elsewhere.
   }
 }
 
-export function writeSingleToJSON<T>(filePath: string, data: T): void {
-  const fileDirectory = filePath.substring(0, filePath.lastIndexOf('/'));
-  if (!fs.existsSync(fileDirectory)) {
-    fs.mkdirSync(fileDirectory, { recursive: true });
+export async function writeSingleToJSON<T>(
+  filePath: string,
+  data: T,
+): Promise<void> {
+  const fileDirectory = path.dirname(filePath);
+  try {
+    createDirectory(fileDirectory);
+    const jsonData = JSON.stringify(data, null, 2);
+    fs.writeFileSync(filePath, jsonData, 'utf8');
+    logger.log('JSON file written successfully.');
+  } catch (error: any) {
+    logger.error('Error writing JSON file:', error.message);
+    throw error; // Optionally, you can rethrow the error to handle it elsewhere.
   }
-  const jsonData = JSON.stringify(data, null, 2);
-  fs.writeFileSync(filePath, jsonData, 'utf8');
 }
 
 // npm install fs js-yaml csv-parser csv-writer

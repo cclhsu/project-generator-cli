@@ -1,61 +1,129 @@
-# Makefile for {{ projectLanguage }} project
-TOP_DIR=$(shell dirname $(abspath $(firstword $(MAKEFILE_LIST))))
-
+#*******************************************************************************
+# Makefile for {{ projectName }}/{{ projectType }}
+#*******************************************************************************
+# Purpose:
+#   This script is used to build, test, and deploy the project.
+#*******************************************************************************
+# Usage:
+#   make [target]
+#*******************************************************************************
+# History:
+#   2021/09/01  Clark Hsu  First release
+#*******************************************************************************
+#*******************************************************************************
 # Variables
+TOP_DIR=$(shell dirname $(abspath $(firstword $(MAKEFILE_LIST))))
 GIT_PROVIDER := {{ gitProvider }}
 PORJECGT_USER := {{ projectUser }}
-PROJECT_NAME := {{ projectLanguage }}-{{ projectName }}-{{ projectType }}
+PROJECT_NAME := {{ projectName }}
+PACKAGE_JSON_FILE=package.json
 
+#*******************************************************************************
+#*******************************************************************************
 # Functions
-
-# Targets
-
+#*******************************************************************************
+#*******************************************************************************
+# Main
+#*******************************************************************************
 .DEFAULT_GOAL := help
 
 .PHONY: help
 help:
 	@echo "Usage: make [target]"
 	@echo "Targets:"
-	@echo "	 help: Show this help message"
-	@echo "	 install: Install packages for the project"
-	@echo "	 update: Update packages for the project"
-	@echo "	 build: Build the project"
-	@echo "	 run: Run the project"
-	@echo "	 test: Test the project"
-	@echo "	 lint: Lint the project"
-	@echo "	 clean: Clean the project"
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "	\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+
+.PHONY: init
+init:  ## Initialize the project
+	@echo ">>> $@ ..."
+	@echo "Initialize the project"
+	npm install --save-dev ts-node typescript @types/node
+	npm init -y
+	npx tsc --init
+	npm install --save-dev nodemon
+	npm install --save-dev jest ts-jest @types/jest # @jest/globals
+	npm install --save-dev supertest @types/supertest
+	jq 'del(.scripts.test)' "${PACKAGE_JSON_FILE}" >"${PACKAGE_JSON_FILE}.new" && mv "${PACKAGE_JSON_FILE}.new" "${PACKAGE_JSON_FILE}"
+	jq '.scripts.build = "npx tsc --outDir ./dist"' "${PACKAGE_JSON_FILE}" >"${PACKAGE_JSON_FILE}.new" && mv "${PACKAGE_JSON_FILE}.new" "${PACKAGE_JSON_FILE}"
+	jq '.scripts.start = "node dist/src/main.js"' "${PACKAGE_JSON_FILE}" >"${PACKAGE_JSON_FILE}.new" && mv "${PACKAGE_JSON_FILE}.new" "${PACKAGE_JSON_FILE}"
+	jq '.scripts.start_dev = "npx ts-node src/main.ts"' "${PACKAGE_JSON_FILE}" >"${PACKAGE_JSON_FILE}.new" && mv "${PACKAGE_JSON_FILE}.new" "${PACKAGE_JSON_FILE}"
+	jq '.scripts.clean = "rm -rf node_modules && rm -rf dist coverage"' "${PACKAGE_JSON_FILE}" >"${PACKAGE_JSON_FILE}.new" && mv "${PACKAGE_JSON_FILE}.new" "${PACKAGE_JSON_FILE}"
+	jq '.scripts.format = "prettier --write \"s{src,test}/**/*.{ts,tsx}\""' "${PACKAGE_JSON_FILE}" >"${PACKAGE_JSON_FILE}.new" && mv "${PACKAGE_JSON_FILE}.new" "${PACKAGE_JSON_FILE}"
+	jq '.scripts.lint = "eslint \"{src,test}/**/*.{ts,tsx}\" --cache --fix"' "${PACKAGE_JSON_FILE}" >"${PACKAGE_JSON_FILE}.new" && mv "${PACKAGE_JSON_FILE}.new" "${PACKAGE_JSON_FILE}"
+	jq '.scripts.test = "jest"' "${PACKAGE_JSON_FILE}" >"${PACKAGE_JSON_FILE}.new" && mv "${PACKAGE_JSON_FILE}.new" "${PACKAGE_JSON_FILE}"
+	jq '.scripts.coverage = "jest --coverage"' "${PACKAGE_JSON_FILE}" >"${PACKAGE_JSON_FILE}.new" && mv "${PACKAGE_JSON_FILE}.new" "${PACKAGE_JSON_FILE}"
+	sed -i "s/start_dev/start:dev/g" "${PACKAGE_JSON_FILE}"
+	npm audit fix # --force
+	@echo ">>> $@ ... Done"
 
 .PHONY: install
-install:
+install:  ## Install packages for the project
+	@echo ">>> $@ ..."
 	@echo "Install packages for the project"
 	npm install
+	@echo ">>> $@ ... Done"
 
 .PHONY: update
-update:
+update:  ## Update packages for the project
+	@echo ">>> $@ ..."
 	@echo "Update packages for the project"
 	npm update
+	@echo ">>> $@ ... Done"
 
 .PHONY: build
-build:
+build:  ## Build the project
+	@echo ">>> $@ ..."
 	@echo "Build the project"
 	npm run build
+	@echo ">>> $@ ... Done"
 
 .PHONY: run
-run:
+run:  ## Run the project
+	@echo ">>> $@ ..."
 	@echo "Run the project"
 	npm run start
+	@# npx tsc src/main.ts
+	@# node src/main.js
+	@echo ">>> $@ ... Done"
 
 .PHONY: test
-test:
+test:  ## Test the project
+	@echo ">>> $@ ..."
 	@echo "Test the project"
-	npm run test
+	npm test
+	@# npm run test
+	@# npm run test:e2e
+	@# npm run test:cov
+	@echo ">>> $@ ... Done"
 
 .PHONY: lint
-lint:
+lint:  ## Lint the project
+	@echo ">>> $@ ..."
 	@echo "Lint the project"
 	npm run lint
+	@echo ">>> $@ ... Done"
+
+.PHONY: package
+package:  ## Package the project
+	@echo ">>> $@ ..."
+	@echo "Package the project"
+	npm pack --pack-destination bin
+	@echo ">>> $@ ... Done"
+
+.PHONY: deploy
+deploy:  ## Deploy the project
+	@echo ">>> $@ ..."
+	@echo "Deploy the project"
+	@echo ">>> $@ ... Done"
 
 .PHONY: clean
-clean:
+clean:  ## Clean the project
+	@echo ">>> $@ ..."
 	@echo "Clean the project"
-	rm -rf node_modules dist coverage .nyc_output .eslintcache .cache .jest
+	rm -rf src/main.js package-lock.json
+	rm -rf node_modules bin dist coverage .nyc_output .eslintcache .cache .jest
+	@echo ">>> $@ ... Done"
+
+#*******************************************************************************
+# EOF
+#*******************************************************************************

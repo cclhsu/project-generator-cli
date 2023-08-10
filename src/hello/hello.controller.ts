@@ -5,8 +5,8 @@ import {
   ApiResponse,
   ApiTags
 } from '@nestjs/swagger';
-import { HelloJsonResponseDto } from './dto/hello-json-response.dto';
-import { HelloStringResponseDto } from './dto/hello-string-response.dto';
+import { HelloJsonResponseDTO } from './dto/hello-json-response.dto';
+import { HelloStringResponseDTO } from './dto/hello-string-response.dto';
 import { HelloService } from './hello.service';
 
 @ApiTags('Hello')
@@ -20,7 +20,7 @@ export class HelloController {
   @ApiResponse({
     status: 200,
     description: 'Hello String',
-    type: HelloStringResponseDto,
+    type: HelloStringResponseDTO,
   })
   @ApiResponse({
     status: 500,
@@ -28,7 +28,7 @@ export class HelloController {
     content: { 'application/json': {} },
   })
   @Get('string')
-  getHelloStringRest(): HelloStringResponseDto {
+  getHelloStringRest(): HelloStringResponseDTO {
     return this.helloService.getHelloString();
   }
 
@@ -38,7 +38,7 @@ export class HelloController {
   @ApiResponse({
     status: 200,
     description: 'Hello JSON',
-    type: HelloJsonResponseDto,
+    type: HelloJsonResponseDTO,
   })
   @ApiResponse({
     status: 500,
@@ -46,7 +46,7 @@ export class HelloController {
     content: { 'application/json': {} },
   })
   @Get('json')
-  getHelloJsonRest(): HelloJsonResponseDto {
+  getHelloJsonRest(): HelloJsonResponseDTO {
     return this.helloService.getHelloJson();
   }
 }

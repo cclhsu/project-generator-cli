@@ -31,7 +31,7 @@ export class ConfigCommand extends CommandRunner {
     options?: Record<string, any> | undefined,
   ): Promise<void> {
     // throw new Error('Method not implemented.');
-    this.logger.log('>>> Running config command');
+    this.logger.debug('>>> Running config command');
   }
 }
 

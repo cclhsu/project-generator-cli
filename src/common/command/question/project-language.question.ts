@@ -3,7 +3,7 @@ import { Question, QuestionSet } from 'nest-commander';
 @QuestionSet({ name: 'project-language-questions' })
 export class ProjectLanguageQuestions {
   @Question({
-    message: 'Enter your project-language:',
+    message: 'Enter project-language:',
     name: 'projectLanguage',
     type: 'list',
     default: 'typescript',

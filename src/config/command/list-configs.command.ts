@@ -1,7 +1,7 @@
 import { CommandRunner, InquirerService, SubCommand } from 'nest-commander';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '../config.service';
-import { ProjectCommonCommandOptionsDto } from 'src/common/command/dto/project-common-command-options.dto';
+import { ProjectCommonCommandOptionsDTO } from 'src/common/command/dto/project-common-command-options.dto';
 
 @Injectable()
 @SubCommand({
@@ -21,11 +21,11 @@ export class ListConfigsCommand extends CommandRunner {
     passedParams: string[],
     options?: Record<string, any> | undefined,
   ): Promise<void> {
-    this.logger.log('>>> Listing config');
+    this.logger.debug('>>> Listing config');
     // this.logger.debug(passedParams);
     // this.logger.debug(options);
 
-    const projectCommonCommandOptionsDto: ProjectCommonCommandOptionsDto = {
+    const projectCommonCommandOptionsDTO: ProjectCommonCommandOptionsDTO = {
       ...options,
     };
 

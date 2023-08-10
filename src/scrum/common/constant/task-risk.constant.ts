@@ -1,0 +1,13 @@
+export type TASK_RISK_TYPES = 'LOW' | 'MEDIUM' | 'HIGH';
+export const TASK_RISK = ['LOW', 'MEDIUM', 'HIGH'];
+export const DEFAULT_TASK_RISK = 'LOW';
+export enum TASK_RISK_ENUM {
+  LOW = 'LOW',
+  MEDIUM = 'MEDIUM',
+  HIGH = 'HIGH',
+}
+export const TASK_RISK_MAP = {
+  [TASK_RISK_ENUM.LOW]: TASK_RISK_ENUM.LOW,
+  [TASK_RISK_ENUM.MEDIUM]: TASK_RISK_ENUM.MEDIUM,
+  [TASK_RISK_ENUM.HIGH]: TASK_RISK_ENUM.HIGH,
+};

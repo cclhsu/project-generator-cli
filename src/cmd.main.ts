@@ -7,9 +7,9 @@ async function bootstrap() {
   await CommandFactory.run(CmdModule, [
     'warn',
     'error',
-    // 'log',
-    // 'debug',
-    // 'verbose',
+    'log',
+    'debug',
+    'verbose',
   ]);
 }
 

@@ -7,20 +7,22 @@
 use super::*;
 
 #[test]
-fn test_hello_func() {
-    let mut arr: [i32;0] = [0;0];
-    assert_eq!(hello_func(&mut arr), 0);
+fn test_case_01() {
+    let n: i32 = 1;
+    let want: i32 = 0;
+    assert_eq!(solution(n), want);
 }
 
 #[test]
-fn hello_func_test() {
-    let mut arr: [i32;0] = [0;0];
-    assert_eq!(hello_func(&mut arr), 0);
+fn test_case_02() {
+    let n: i32 = 2;
+    let want: i32 = 0;
+    assert_eq!(solution(n), want);
 }
 
 #[test]
-#[ignore]
-fn ignored_test() {
-    let mut arr: [i32;0] = [0;0];
-    assert_eq!(hello_func(&mut arr), 0);
+fn test_case_03() {
+    let n: i32 = 3;
+    let want: i32 = 0;
+    assert_eq!(solution(n), want);
 }

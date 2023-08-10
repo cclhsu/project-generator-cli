@@ -1,0 +1,32 @@
+export type DEPENDENCY_LEVELS_TYPES =
+  | 'NONE'
+  | 'ALMOST_NONE'
+  | 'SOME'
+  | 'FEW'
+  | 'MORE_THAN_A_FEW'
+  | 'UNKNOWN';
+export const DEPENDENCY_LEVELS = [
+  'NONE',
+  'ALMOST_NONE',
+  'SOME',
+  'FEW',
+  'MORE_THAN_A_FEW',
+  'UNKNOWN',
+];
+export const DEFAULT_DEPENDENCY_LEVEL = 'NONE';
+export enum DEPENDENCY_LEVELS_ENUM {
+  NONE = 'None (DL)', // 1
+  ALMOST_NONE = 'Almost None (DL)', // 2
+  SOME = 'Some (DL)', // 3
+  FEW = 'Few (DL)', // 5
+  MORE_THAN_A_FEW = 'More than a few (DL)', // 8
+  UNKNOWN = 'Unknown (DL)', // 13
+}
+export const DEPENDENCY_LEVELS_MAP = {
+  [DEPENDENCY_LEVELS_ENUM.NONE]: 1,
+  [DEPENDENCY_LEVELS_ENUM.ALMOST_NONE]: 2,
+  [DEPENDENCY_LEVELS_ENUM.SOME]: 3,
+  [DEPENDENCY_LEVELS_ENUM.FEW]: 5,
+  [DEPENDENCY_LEVELS_ENUM.MORE_THAN_A_FEW]: 8,
+  [DEPENDENCY_LEVELS_ENUM.UNKNOWN]: 13,
+};

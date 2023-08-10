@@ -6,7 +6,7 @@ import {
 } from 'nest-commander';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '../config.service';
-import { ProjectCommonCommandOptionsDto } from 'src/common/command/dto/project-common-command-options.dto';
+import { ProjectCommonCommandOptionsDTO } from 'src/common/command/dto/project-common-command-options.dto';
 import { getProjectName } from 'src/utils/project-name/project-name.utils';
 
 @Injectable()
@@ -28,7 +28,7 @@ export class GetConfigCommand extends CommandRunner {
     passedParams: string[],
     options?: Record<string, any> | undefined,
   ): Promise<void> {
-    this.logger.log('>>> Getting config');
+    this.logger.debug('>>> Getting config');
     // this.logger.debug(passedParams);
     // this.logger.debug(options);
 
@@ -39,11 +39,11 @@ export class GetConfigCommand extends CommandRunner {
       return;
     }
 
-    // const projectCommonCommandOptionsDto: ProjectCommonCommandOptionsDto = {
+    // const projectCommonCommandOptionsDTO: ProjectCommonCommandOptionsDTO = {
     //   ...options,
     // };
 
-    const config: ProjectCommonCommandOptionsDto =
+    const config: ProjectCommonCommandOptionsDTO =
       await this.configService.getConfig(packageProjectName);
 
     this.displayResults(
@@ -76,4 +76,4 @@ export class GetConfigCommand extends CommandRunner {
 // npm run build
 // nestjs build
 // node ./dist/cmd.main config get --help
-// node ./dist/cmd.main config get --uuid 123
+// node ./dist/cmd.main config get --uuid 00000000-0000-0000-0000-000000000001

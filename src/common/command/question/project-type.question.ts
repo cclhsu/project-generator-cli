@@ -3,10 +3,10 @@ import { Question, QuestionSet } from 'nest-commander';
 @QuestionSet({ name: 'project-type-questions' })
 export class ProjectTypeQuestions {
   @Question({
-    message: 'Enter your project-type:',
+    message: 'Enter project-type:',
     name: 'projectType',
     type: 'list',
-    default: 'typescript',
+    default: 'algorithm',
     choices: [
       'service',
       'cli',

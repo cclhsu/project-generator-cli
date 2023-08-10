@@ -1,0 +1,32 @@
+export type UNCERTAINTY_LEVEL_TYPES =
+  | 'NONE'
+  | 'SOME'
+  | 'LOW'
+  | 'MODERATE'
+  | 'HIGH'
+  | 'EXTREME';
+export const UNCERTAINTY_LEVEL_TYPES = [
+  'NONE',
+  'SOME',
+  'LOW',
+  'MODERATE',
+  'HIGH',
+  'EXTREME',
+];
+export const DEFAULT_UNCERTAINTY_LEVEL = 'NONE';
+export enum UNCERTAINTY_LEVEL_ENUM {
+  NONE = 'None (UL)', // 1
+  SOME = 'Some (UL)', // 2
+  LOW = 'Low (UL)', // 3
+  MODERATE = 'Moderate (UL)', // 5
+  HIGH = 'High (UL)', // 8
+  EXTREME = 'Extreme (UL)', // 13
+}
+export const UNCERTAINTY_LEVELS_MAP = {
+  [UNCERTAINTY_LEVEL_ENUM.NONE]: 1,
+  [UNCERTAINTY_LEVEL_ENUM.SOME]: 2,
+  [UNCERTAINTY_LEVEL_ENUM.LOW]: 3,
+  [UNCERTAINTY_LEVEL_ENUM.MODERATE]: 5,
+  [UNCERTAINTY_LEVEL_ENUM.HIGH]: 8,
+  [UNCERTAINTY_LEVEL_ENUM.EXTREME]: 13,
+};

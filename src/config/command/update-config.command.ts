@@ -6,15 +6,19 @@ import {
 } from 'nest-commander';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '../config.service';
-import { GitProviderAnswerDto } from 'src/common/command/dto/git-provider-answer.dto';
-import { ProjectCommonCommandOptionsDto } from 'src/common/command/dto/project-common-command-options.dto';
-import { ProjectTeamAnswerDto } from 'src/common/command/dto/project-team-answer.dto';
-import { ProjectUserAnswerDto } from 'src/common/command/dto/project-user-answer.dto';
-import { SrcRootAnswerDto } from 'src/common/command/dto/src-root-answer.dto';
-import { TemplateRootAnswerDto } from 'src/common/command/dto/template-root-answer.dto';
-import { ConfigPathAnswerDto } from 'src/common/command/dto/config-path-answer.dto';
-import { ConfirmUpdateAnswerDto } from 'src/common/command/dto/confirm-update-answer.dto';
+import { GitProviderAnswerDTO } from 'src/common/command/dto/git-provider-answer.dto';
+import { ProjectCommonCommandOptionsDTO } from 'src/common/command/dto/project-common-command-options.dto';
+import { ProjectTeamAnswerDTO } from 'src/common/command/dto/project-team-answer.dto';
+import { ProjectUserAnswerDTO } from 'src/common/command/dto/project-user-answer.dto';
+import { SrcRootAnswerDTO } from 'src/common/command/dto/src-root-answer.dto';
+import { TemplateRootAnswerDTO } from 'src/common/command/dto/template-root-answer.dto';
+import { ConfigPathAnswerDTO } from 'src/common/command/dto/config-path-answer.dto';
+import { ConfirmUpdateAnswerDTO } from 'src/common/command/dto/confirm-update-answer.dto';
 import { getProjectName } from 'src/utils/project-name/project-name.utils';
+import {
+  DEFAULT_GIT_PROVIDER,
+  GIT_PROVIDER_TYPES,
+} from 'src/common/constant/git.constant';
 
 @Injectable()
 @SubCommand({
@@ -34,7 +38,7 @@ export class UpdateConfigCommand extends CommandRunner {
     passedParams: string[],
     options?: Record<string, any> | undefined,
   ): Promise<void> {
-    this.logger.log('>>> Updating config');
+    this.logger.debug('>>> Updating config');
     // this.logger.debug(passedParams);
     // this.logger.debug(options);
 
@@ -46,74 +50,74 @@ export class UpdateConfigCommand extends CommandRunner {
     }
 
     // load config
-    const projectCommonCommandOptionsDto: ProjectCommonCommandOptionsDto =
+    const projectCommonCommandOptionsDTO: ProjectCommonCommandOptionsDTO =
       await this.configService.getConfig(packageProjectName);
 
     // update config with passed options
     if (options?.configPath) {
-      projectCommonCommandOptionsDto.configPath = options.configPath;
+      projectCommonCommandOptionsDTO.configPath = options.configPath;
     }
     if (options?.templateRoot) {
-      projectCommonCommandOptionsDto.templateRoot = options.templateRoot;
+      projectCommonCommandOptionsDTO.templateRoot = options.templateRoot;
     }
     if (options?.srcRoot) {
-      projectCommonCommandOptionsDto.srcRoot = options.srcRoot;
+      projectCommonCommandOptionsDTO.srcRoot = options.srcRoot;
     }
     if (options?.gitProvider) {
-      projectCommonCommandOptionsDto.gitProvider = options.gitProvider;
+      projectCommonCommandOptionsDTO.gitProvider = options.gitProvider;
     }
     if (options?.projectTeam) {
-      projectCommonCommandOptionsDto.projectTeam = options.projectTeam;
+      projectCommonCommandOptionsDTO.projectTeam = options.projectTeam;
     }
     if (options?.projectUser) {
-      projectCommonCommandOptionsDto.projectUser = options.projectUser;
+      projectCommonCommandOptionsDTO.projectUser = options.projectUser;
     }
 
-    if (!projectCommonCommandOptionsDto.configPath) {
-      projectCommonCommandOptionsDto.configPath = (
-        await this.inquirer.ask<ConfigPathAnswerDto>(
+    if (!projectCommonCommandOptionsDTO.configPath) {
+      projectCommonCommandOptionsDTO.configPath = (
+        await this.inquirer.ask<ConfigPathAnswerDTO>(
           'config-path-questions',
           options,
         )
       ).configPath;
     }
 
-    if (!projectCommonCommandOptionsDto.templateRoot) {
-      projectCommonCommandOptionsDto.templateRoot = (
-        await this.inquirer.ask<TemplateRootAnswerDto>(
+    if (!projectCommonCommandOptionsDTO.templateRoot) {
+      projectCommonCommandOptionsDTO.templateRoot = (
+        await this.inquirer.ask<TemplateRootAnswerDTO>(
           'template-root-questions',
           options,
         )
       ).templateRoot;
     }
 
-    if (!projectCommonCommandOptionsDto.srcRoot) {
-      projectCommonCommandOptionsDto.srcRoot = (
-        await this.inquirer.ask<SrcRootAnswerDto>('src-root-questions', options)
+    if (!projectCommonCommandOptionsDTO.srcRoot) {
+      projectCommonCommandOptionsDTO.srcRoot = (
+        await this.inquirer.ask<SrcRootAnswerDTO>('src-root-questions', options)
       ).srcRoot;
     }
 
-    if (!projectCommonCommandOptionsDto.gitProvider) {
-      projectCommonCommandOptionsDto.gitProvider = (
-        await this.inquirer.ask<GitProviderAnswerDto>(
+    if (!projectCommonCommandOptionsDTO.gitProvider) {
+      projectCommonCommandOptionsDTO.gitProvider = (
+        await this.inquirer.ask<GitProviderAnswerDTO>(
           'git-provider-questions',
           options,
         )
       ).gitProvider;
     }
 
-    if (!projectCommonCommandOptionsDto.projectTeam) {
-      projectCommonCommandOptionsDto.projectTeam = (
-        await this.inquirer.ask<ProjectTeamAnswerDto>(
+    if (!projectCommonCommandOptionsDTO.projectTeam) {
+      projectCommonCommandOptionsDTO.projectTeam = (
+        await this.inquirer.ask<ProjectTeamAnswerDTO>(
           'project-team-questions',
           options,
         )
       ).projectTeam;
     }
 
-    if (!projectCommonCommandOptionsDto.projectUser) {
-      projectCommonCommandOptionsDto.projectUser = (
-        await this.inquirer.ask<ProjectUserAnswerDto>(
+    if (!projectCommonCommandOptionsDTO.projectUser) {
+      projectCommonCommandOptionsDTO.projectUser = (
+        await this.inquirer.ask<ProjectUserAnswerDTO>(
           'project-user-questions',
           options,
         )
@@ -121,28 +125,28 @@ export class UpdateConfigCommand extends CommandRunner {
     }
 
     this.displayResults(
-      projectCommonCommandOptionsDto.configPath ?? 'N/A',
-      projectCommonCommandOptionsDto.templateRoot ?? 'N/A',
-      projectCommonCommandOptionsDto.srcRoot ?? 'N/A',
-      projectCommonCommandOptionsDto.gitProvider ?? 'N/A',
-      projectCommonCommandOptionsDto.projectTeam ?? 'N/A',
-      projectCommonCommandOptionsDto.projectUser ?? 'N/A',
+      projectCommonCommandOptionsDTO.configPath ?? 'N/A',
+      projectCommonCommandOptionsDTO.templateRoot ?? 'N/A',
+      projectCommonCommandOptionsDTO.srcRoot ?? 'N/A',
+      projectCommonCommandOptionsDTO.gitProvider ?? 'N/A',
+      projectCommonCommandOptionsDTO.projectTeam ?? 'N/A',
+      projectCommonCommandOptionsDTO.projectUser ?? 'N/A',
     );
 
-    const confirmUpdateAnswerDto: ConfirmUpdateAnswerDto =
-      await this.inquirer.ask<ConfirmUpdateAnswerDto>(
+    const confirmUpdateAnswerDTO: ConfirmUpdateAnswerDTO =
+      await this.inquirer.ask<ConfirmUpdateAnswerDTO>(
         'confirm-update-questions',
         options,
       );
 
-    if (!confirmUpdateAnswerDto.confirmUpdate) {
+    if (!confirmUpdateAnswerDTO.confirmUpdate) {
       console.log('Config update cancelled');
       return;
     }
 
     this.configService.updateConfig(
       packageProjectName,
-      projectCommonCommandOptionsDto,
+      projectCommonCommandOptionsDTO,
     );
   }
 
@@ -191,9 +195,9 @@ export class UpdateConfigCommand extends CommandRunner {
 
   @Option({
     flags: '-g, --git-provider [gitProvider]',
-    // defaultValue: 'github.com',
+    // defaultValue: DEFAULT_GIT_PROVIDER,
     description: 'Your git provider',
-    choices: ['github.com', 'gitlab.com', 'bitbucket.org', 'mypProject'],
+    choices: GIT_PROVIDER_TYPES,
   })
   parseGitProvider(val: string): string {
     return val;
@@ -220,4 +224,4 @@ export class UpdateConfigCommand extends CommandRunner {
 // npm run build
 // nestjs build
 // node ./dist/cmd.main config update --help
-// node ./dist/cmd.main config update --uuid 123 --username john.doe --email john.doe@mail.com --phone 0912345678
+// node ./dist/cmd.main config update --uuid 00000000-0000-0000-0000-000000000001 --username john.doe --email john.doe@mail.com --phone 0912345678

@@ -1,0 +1,58 @@
+enum StepType {
+  Given
+  When
+  Then
+}
+
+model DefinitionOfDoneDTO {
+  codeReviewed         Boolean
+  unitTestsPassed      Boolean
+  integrationTestsPassed Boolean
+  automatedTestsWritten Boolean
+  documentationUpdated Boolean
+  acceptanceCriteriaMet Boolean
+  designReviewed       Boolean
+  noCriticalBugs       Boolean
+  performanceTested    Boolean
+  securityReviewed     Boolean
+  reviewedByProductOwner Boolean
+}
+
+model GherkinStepDTO {
+  type        StepType
+  description String
+  data        Json?
+}
+
+model GherkinBackgroundDTO {
+  name  String
+  steps GherkinStepDTO[]
+}
+
+model UserStoryDTO {
+  role    String
+  goal    String
+  benefit String
+}
+
+model AcceptanceTestScenarioDTO {
+  name  String
+  given GherkinStepDTO[]
+  when  GherkinStepDTO
+  then  GherkinStepDTO[]
+}
+
+model GherkinScenarioDTO {
+  name     String
+  steps    GherkinStepDTO[]
+  tags     String[]
+  examples GherkinStepDTO[][]
+}
+
+model GherkinFeature {
+  feature      String
+  description  UserStoryDTO
+  background   GherkinBackgroundDTO?
+  scenarios    GherkinScenarioDTO[]
+  tags         String[]
+}

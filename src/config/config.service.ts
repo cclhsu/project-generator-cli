@@ -1,7 +1,16 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import * as fs from 'fs';
-import { resolveHomePath } from 'src/utils/path/path.utils';
-import { ProjectCommonCommandOptionsDto } from 'src/common/command/dto/project-common-command-options.dto';
+import {
+  DEFAULT_CONFIG_NAME,
+  CONFIG_TYPES,
+  DEFAULT_CONFIG_TYPE,
+} from 'src/common/constant/config.constant';
+import {
+  getCsvConfigFilePath,
+  getJsonConfigFilePath,
+  getYamlConfigFilePath,
+} from 'src/utils/config/config.utils';
+import { ProjectCommonCommandOptionsDTO } from 'src/common/command/dto/project-common-command-options.dto';
 
 @Injectable()
 export class ConfigService {
@@ -10,96 +19,141 @@ export class ConfigService {
   //     throw new Error('Method not implemented.');
   //   }
 
-  configTypes = ['json', 'yaml', 'csv'];
-  configType = this.configTypes[1];
-
   constructor(
     @Inject('ReadSingleFromJSON')
-    private readonly readFromJSON: <T>(filePath: string) => Promise<T>,
+    private readonly readSingleFromJSON: <T>(filePath: string) => Promise<T>,
     @Inject('WriteSingleToJSON')
-    private readonly writeToJSON: <T>(filePath: string, data: T) => void,
+    private readonly writeSingleToJSON: <T>(filePath: string, data: T) => void,
     @Inject('ReadSingleFromYAML')
-    private readonly readFromYAML: <T>(filePath: string) => Promise<T>,
+    private readonly readSingleFromYAML: <T>(filePath: string) => Promise<T>,
     @Inject('WriteSingleToYAML')
-    private readonly writeToYAML: <T>(filePath: string, data: T) => void,
+    private readonly writeSingleToYAML: <T>(filePath: string, data: T) => void,
     @Inject('ReadSingleFromCSV')
-    private readonly readFromCSV: <T>(filePath: string) => Promise<T>,
+    private readonly readSingleFromCSV: <T>(filePath: string) => Promise<T>,
     @Inject('WriteSingleToCSV')
-    private readonly writeToCSV: <T>(filePath: string, data: T) => void,
+    private readonly writeSingleToCSV: <T>(filePath: string, data: T) => void,
   ) {}
 
-  isConfigFileExists(projectName: string): boolean {
-    if (this.configType === this.configTypes[0]) {
-      const jsonConfigFile: string = this.getJsonConfigFile(projectName);
+  isConfigFileExists(
+    projectName: string,
+    configName = DEFAULT_CONFIG_NAME,
+    configType = DEFAULT_CONFIG_TYPE,
+  ): boolean {
+    if (!CONFIG_TYPES.includes(configType)) {
+      throw new Error(
+        `Invalid configType. Allowed values are: ${CONFIG_TYPES.join(', ')}`,
+      );
+    }
+
+    if (configName === CONFIG_TYPES[0]) {
+      const jsonConfigFile: string = getJsonConfigFilePath(
+        projectName,
+        configName,
+      );
       return fs.existsSync(jsonConfigFile);
     }
-    if (this.configType === this.configTypes[1]) {
-      const yamlConfigFile: string = this.getYamlConfigFile(projectName);
+    if (configName === CONFIG_TYPES[1]) {
+      const yamlConfigFile: string = getYamlConfigFilePath(
+        projectName,
+        configName,
+      );
       return fs.existsSync(yamlConfigFile);
     }
-    if (this.configType === this.configTypes[2]) {
-      const csvConfigFile: string = this.getCsvConfigFile(projectName);
+    if (configName === CONFIG_TYPES[2]) {
+      const csvConfigFile: string = getCsvConfigFilePath(
+        projectName,
+        configName,
+      );
       return fs.existsSync(csvConfigFile);
     }
     return false;
   }
 
-  async listConfigs(): Promise<ProjectCommonCommandOptionsDto> {
-    this.logger.log('>>> Listing configs');
+  async listConfigs(): Promise<ProjectCommonCommandOptionsDTO> {
+    this.logger.debug('>>> Listing configs');
     throw new Error('Method not implemented.');
   }
 
   async getConfig(
     projectName: string,
-  ): Promise<ProjectCommonCommandOptionsDto> {
-    this.logger.log('>>> Getting config');
+    configName = DEFAULT_CONFIG_NAME,
+    configType = DEFAULT_CONFIG_TYPE,
+  ): Promise<ProjectCommonCommandOptionsDTO> {
+    this.logger.debug('>>> Getting config');
+    if (!CONFIG_TYPES.includes(configType)) {
+      throw new Error(
+        `Invalid configType. Allowed values are: ${CONFIG_TYPES.join(', ')}`,
+      );
+    }
 
-    if (this.configType === this.configTypes[0]) {
-      const jsonConfigFile = await this.getJsonConfigFile(projectName);
+    if (configName === CONFIG_TYPES[0]) {
+      const jsonConfigFile = await getJsonConfigFilePath(
+        projectName,
+        configName,
+      );
       return await this.readConfigFromJSON(jsonConfigFile);
     }
 
-    if (this.configType === this.configTypes[1]) {
-      const yamlConfigFile = await this.getYamlConfigFile(projectName);
+    if (configName === CONFIG_TYPES[1]) {
+      const yamlConfigFile = await getYamlConfigFilePath(
+        projectName,
+        configName,
+      );
       return await this.readConfigFromYAML(yamlConfigFile);
     }
 
-    if (this.configType === this.configTypes[2]) {
-      const csvConfigFile = await this.getCsvConfigFile(projectName);
+    if (configName === CONFIG_TYPES[2]) {
+      const csvConfigFile = await getCsvConfigFilePath(projectName, configName);
       return await this.readConfigFromCSV(csvConfigFile);
     }
 
-    return {} as ProjectCommonCommandOptionsDto;
+    return {} as ProjectCommonCommandOptionsDTO;
   }
 
   async createConfig(
     projectName: string,
-    projectCommonCommandOptionsDto: ProjectCommonCommandOptionsDto,
+    projectCommonCommandOptionsDTO: ProjectCommonCommandOptionsDTO,
+    configName = DEFAULT_CONFIG_NAME,
+    configType = DEFAULT_CONFIG_TYPE,
   ): Promise<void> {
-    this.logger.log('>>> Creating config');
+    this.logger.debug('>>> Creating config');
+    if (!CONFIG_TYPES.includes(configType)) {
+      throw new Error(
+        `Invalid configType. Allowed values are: ${CONFIG_TYPES.join(', ')}`,
+      );
+    }
 
     if (!this.isConfigFileExists(projectName)) {
-      if (this.configType === this.configTypes[0]) {
-        const jsonConfigFile = await this.getJsonConfigFile(projectName);
+      if (configName === CONFIG_TYPES[0]) {
+        const jsonConfigFile = await getJsonConfigFilePath(
+          projectName,
+          configName,
+        );
         await this.writeConfigToJSON(
           jsonConfigFile,
-          projectCommonCommandOptionsDto,
+          projectCommonCommandOptionsDTO,
         );
       }
 
-      if (this.configType === this.configTypes[1]) {
-        const yamlConfigFile = await this.getYamlConfigFile(projectName);
+      if (configName === CONFIG_TYPES[1]) {
+        const yamlConfigFile = await getYamlConfigFilePath(
+          projectName,
+          configName,
+        );
         await this.writeConfigToYAML(
           yamlConfigFile,
-          projectCommonCommandOptionsDto,
+          projectCommonCommandOptionsDTO,
         );
       }
 
-      if (this.configType === this.configTypes[2]) {
-        const csvConfigFile = await this.getCsvConfigFile(projectName);
+      if (configName === CONFIG_TYPES[2]) {
+        const csvConfigFile = await getCsvConfigFilePath(
+          projectName,
+          configName,
+        );
         await this.writeConfigToCSV(
           csvConfigFile,
-          projectCommonCommandOptionsDto,
+          projectCommonCommandOptionsDTO,
         );
       }
     }
@@ -107,128 +161,135 @@ export class ConfigService {
 
   async updateConfig(
     projectName: string,
-    projectCommonCommandOptionsDto: ProjectCommonCommandOptionsDto,
+    projectCommonCommandOptionsDTO: ProjectCommonCommandOptionsDTO,
+    configName = DEFAULT_CONFIG_NAME,
+    configType = DEFAULT_CONFIG_TYPE,
   ): Promise<void> {
-    this.logger.log('>>> Updating config');
+    this.logger.debug('>>> Updating config');
+    if (!CONFIG_TYPES.includes(configType)) {
+      throw new Error(
+        `Invalid configType. Allowed values are: ${CONFIG_TYPES.join(', ')}`,
+      );
+    }
 
     if (this.isConfigFileExists(projectName)) {
-      if (this.configType === this.configTypes[0]) {
-        const jsonConfigFile = await this.getJsonConfigFile(projectName);
+      if (configName === CONFIG_TYPES[0]) {
+        const jsonConfigFile = await getJsonConfigFilePath(
+          projectName,
+          configName,
+        );
         await this.writeConfigToJSON(
           jsonConfigFile,
-          projectCommonCommandOptionsDto,
+          projectCommonCommandOptionsDTO,
         );
       }
 
-      if (this.configType === this.configTypes[1]) {
-        const yamlConfigFile = await this.getYamlConfigFile(projectName);
+      if (configName === CONFIG_TYPES[1]) {
+        const yamlConfigFile = await getYamlConfigFilePath(
+          projectName,
+          configName,
+        );
         await this.writeConfigToYAML(
           yamlConfigFile,
-          projectCommonCommandOptionsDto,
+          projectCommonCommandOptionsDTO,
         );
       }
 
-      if (this.configType === this.configTypes[2]) {
-        const csvConfigFile = await this.getCsvConfigFile(projectName);
+      if (configName === CONFIG_TYPES[2]) {
+        const csvConfigFile = await getCsvConfigFilePath(
+          projectName,
+          configName,
+        );
         await this.writeConfigToCSV(
           csvConfigFile,
-          projectCommonCommandOptionsDto,
+          projectCommonCommandOptionsDTO,
         );
       }
     }
   }
 
-  async deleteConfig(projectName: string): Promise<void> {
-    this.logger.log('>>> Deleting config');
+  async deleteConfig(
+    projectName: string,
+    configName = DEFAULT_CONFIG_NAME,
+    configType = DEFAULT_CONFIG_TYPE,
+  ): Promise<void> {
+    this.logger.debug('>>> Deleting config');
+    if (!CONFIG_TYPES.includes(configType)) {
+      throw new Error(
+        `Invalid configType. Allowed values are: ${CONFIG_TYPES.join(', ')}`,
+      );
+    }
 
     if (this.isConfigFileExists(projectName)) {
-      if (this.configType === this.configTypes[0]) {
-        const jsonConfigFile = await this.getJsonConfigFile(projectName);
+      if (configName === CONFIG_TYPES[0]) {
+        const jsonConfigFile = await getJsonConfigFilePath(
+          projectName,
+          configName,
+        );
         await this.deleteFile(jsonConfigFile);
       }
 
-      if (this.configType === this.configTypes[1]) {
-        const yamlConfigFile = await this.getYamlConfigFile(projectName);
+      if (configName === CONFIG_TYPES[1]) {
+        const yamlConfigFile = await getYamlConfigFilePath(
+          projectName,
+          configName,
+        );
         await this.deleteFile(yamlConfigFile);
       }
 
-      if (this.configType === this.configTypes[2]) {
-        const csvConfigFile = await this.getCsvConfigFile(projectName);
+      if (configName === CONFIG_TYPES[2]) {
+        const csvConfigFile = await getCsvConfigFilePath(
+          projectName,
+          configName,
+        );
         await this.deleteFile(csvConfigFile);
       }
     }
   }
 
-  getJsonConfigFile(projectName: string): string {
-    const jsonConfigFile: string = resolveHomePath(
-      ['${HOME}', '.config', projectName, 'project-command-options.json'].join(
-        '/',
-      ),
-    );
-    return jsonConfigFile;
-  }
-
-  getYamlConfigFile(projectName: string): string {
-    const yamlConfigFile: string = resolveHomePath(
-      ['${HOME}', '.config', projectName, 'project-command-options.yaml'].join(
-        '/',
-      ),
-    );
-    return yamlConfigFile;
-  }
-
-  getCsvConfigFile(projectName: string): string {
-    const csvConfigFile: string = resolveHomePath(
-      ['${HOME}', '.config', projectName, 'project-command-options.csv'].join(
-        '/',
-      ),
-    );
-    return csvConfigFile;
-  }
-
   async readConfigFromJSON(
     filePath: string,
-  ): Promise<ProjectCommonCommandOptionsDto> {
-    return this.readFromJSON<ProjectCommonCommandOptionsDto>(filePath);
+  ): Promise<ProjectCommonCommandOptionsDTO> {
+    return this.readSingleFromJSON<ProjectCommonCommandOptionsDTO>(filePath);
   }
 
   async writeConfigToJSON(
     filePath: string,
-    config: ProjectCommonCommandOptionsDto,
+    config: ProjectCommonCommandOptionsDTO,
   ): Promise<void> {
-    this.writeToJSON<ProjectCommonCommandOptionsDto>(filePath, config);
+    this.writeSingleToJSON<ProjectCommonCommandOptionsDTO>(filePath, config);
   }
 
   async readConfigFromYAML(
     filePath: string,
-  ): Promise<ProjectCommonCommandOptionsDto> {
-    return this.readFromYAML<ProjectCommonCommandOptionsDto>(filePath);
+  ): Promise<ProjectCommonCommandOptionsDTO> {
+    return this.readSingleFromYAML<ProjectCommonCommandOptionsDTO>(filePath);
   }
 
   async writeConfigToYAML(
     filePath: string,
-    config: ProjectCommonCommandOptionsDto,
+    config: ProjectCommonCommandOptionsDTO,
   ): Promise<void> {
-    this.writeToYAML<ProjectCommonCommandOptionsDto>(filePath, config);
+    this.writeSingleToYAML<ProjectCommonCommandOptionsDTO>(filePath, config);
   }
 
   async readConfigFromCSV(
     filePath: string,
-  ): Promise<ProjectCommonCommandOptionsDto> {
-    return this.readFromCSV<ProjectCommonCommandOptionsDto>(filePath);
+  ): Promise<ProjectCommonCommandOptionsDTO> {
+    return this.readSingleFromCSV<ProjectCommonCommandOptionsDTO>(filePath);
   }
 
   async writeConfigToCSV(
     filePath: string,
-    config: ProjectCommonCommandOptionsDto,
+    config: ProjectCommonCommandOptionsDTO,
   ): Promise<void> {
-    this.writeToCSV<ProjectCommonCommandOptionsDto>(filePath, config);
+    this.writeSingleToCSV<ProjectCommonCommandOptionsDTO>(filePath, config);
   }
 
   async deleteFile(filePath: string): Promise<void> {
-    fs.unlink(filePath, (err) => {
-      if (err) {
-        console.error('Error deleting file:', err);
+    fs.unlink(filePath, (error) => {
+      if (error) {
+        console.error('Error deleting file:', error);
       } else {
         console.log('File deleted successfully.');
       }

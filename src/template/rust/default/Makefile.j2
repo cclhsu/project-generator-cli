@@ -1,64 +1,109 @@
-# Makefile for {{ projectLanguage }} project
-TOP_DIR=$(shell dirname $(abspath $(firstword $(MAKEFILE_LIST))))
-
+#*******************************************************************************
+# Makefile for {{ projectName }}/{{ projectType }}
+#*******************************************************************************
+# Purpose:
+#   This script is used to build, test, and deploy the project.
+#*******************************************************************************
+# Usage:
+#   make [target]
+#*******************************************************************************
+# History:
+#   2021/09/01  Clark Hsu  First release
+#*******************************************************************************
+#*******************************************************************************
 # Variables
+TOP_DIR=$(shell dirname $(abspath $(firstword $(MAKEFILE_LIST))))
 GIT_PROVIDER := {{ gitProvider }}
 PORJECGT_USER := {{ projectUser }}
-PROJECT_NAME := {{ projectLanguage }}-{{ projectName }}-{{ projectType }}
+PROJECT_NAME := {{ projectName }}
 
+#*******************************************************************************
+#*******************************************************************************
 # Functions
-
-# Targets
-
+#*******************************************************************************
+#*******************************************************************************
+# Main
+#*******************************************************************************
 .DEFAULT_GOAL := help
 
 .PHONY: help
 help:
 	@echo "Usage: make [target]"
 	@echo "Targets:"
-	@echo "	 help: Show this help message"
-	@echo "	 install: Install packages for the project"
-	@echo "	 update: Update packages for the project"
-	@echo "	 build: Build the project"
-	@echo "	 run: Run the project"
-	@echo "	 test: Test the project"
-	@echo "	 lint: Lint the project"
-	@echo "	 clean: Clean the project"
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "	\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+
+.PHONY: init
+init:  ## Initialize the project
+	@echo ">>> $@ ..."
+	@echo "Initialize the project"
+	cargo init --bin
+	@echo ">>> $@ ... Done"
 
 .PHONY: install
-install:
+install:  ## Install packages for the project
+	@echo ">>> $@ ..."
 	@echo "Install packages for the project"
 	cargo init --bin
+	@echo ">>> $@ ... Done"
 
 .PHONY: update
-update:
+update:  ## Update packages for the project
+	@echo ">>> $@ ..."
 	@echo "Update packages for the project"
 	cargo update
+	@echo ">>> $@ ... Done"
 
 .PHONY: build
-build:
+build:  ## Build the project
+	@echo ">>> $@ ..."
 	@echo "Build the project"
 	cargo build
+	@echo ">>> $@ ... Done"
 
 .PHONY: run
-run:
+run:  ## Run the project
+	@echo ">>> $@ ..."
 	@echo "Run the project"
-	çargo run
+	@# cargo run
+	cargo build
+	./target/debug/${PROJECT_NAME}
+	@echo ">>> $@ ... Done"
 
 .PHONY: test
-test:
+test:  ## Test the project
+	@echo ">>> $@ ..."
 	@echo "Test the project"
+	cargo build
 	cargo test
+	@echo ">>> $@ ... Done"
 
 .PHONY: lint
-lint:
+lint:  ## Lint the project
+	@echo ">>> $@ ..."
 	@echo "Lint the project"
 	cargo clippy --fix
+	@echo ">>> $@ ... Done"
+
+.PHONY: package
+package:  ## Package the project
+	@echo ">>> $@ ..."
+	@echo "Package the project"
+	@echo ">>> $@ ... Done"
+
+.PHONY: deploy
+deploy:  ## Deploy the project
+	@echo ">>> $@ ..."
+	@echo "Deploy the project"
+	@echo ">>> $@ ... Done"
 
 .PHONY: clean
-clean:
+clean:  ## Clean the project
+	@echo ">>> $@ ..."
 	@echo "Clean the project"
-    rm -rf $(TOP_DIR)/$(PROJECT_NAME)
-    rm -rf $(TOP_DIR)/data/bin
-    rm -rf $(TOP_DIR)/target
-    rm -rf .git .gitignore Cargo.lock Cargo.toml
+	rm -rf ${PROJECT_DIR:?}/{bin,dist,target,vendor}
+	rm -rf .git .gitignore Cargo.lock Cargo.toml
+	@echo ">>> $@ ... Done"
+
+#*******************************************************************************
+# EOF
+#*******************************************************************************

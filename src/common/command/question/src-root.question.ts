@@ -3,7 +3,7 @@ import { Question, QuestionSet } from 'nest-commander';
 @QuestionSet({ name: 'src-root-questions' })
 export class SrcRootQuestions {
   @Question({
-    message: 'Enter your src-root:',
+    message: 'Enter src-root:',
     name: 'srcRoot',
     type: 'input',
     default: '${HOME}/src',

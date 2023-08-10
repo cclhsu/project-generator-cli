@@ -1,0 +1,62 @@
+---
+title: '[MyLabel] <MyTitle>'
+description: '<MyTemplate> for <MY_PROJECT>'
+labels: 'kind/MyLabel'
+priority: ''
+assignees: ''
+status: ''
+date: 2022-01-01T00:00:00+08:00
+url: ''
+doc: ''
+github: ''
+ticket:
+draft: true
+---
+
+# {{ TOPIC }} <!-- omit in toc -->
+
+- [](#)
+- [Reference](#reference)
+
+---
+
+## [](<URL>)
+
+```bash
+LANGUAGE=typescript # golang | typescript | nestjs
+SRC_ROOT=${HOME}/Documents/myProject/CodingTest/src/${LANGUAGE}/takehome/solution
+# PROJECT_TEAM=
+PROJECT_NAME=${LANGUAGE}-sample-test # ${LANGUAGE}-sample-test | nestjs-graphql-prisma-postgres | nestjs-grpc-prisma-postgres | nestjs-restful-prisma-postgres | nestjs-restful-prisma-mongodb | nestjs-restful-prisma-sqlite3
+# PROJECT_DIR="${SRC_ROOT}/${PROJECT_TEAM}/${PROJECT_NAME}"
+PROJECT_DIR="${SRC_ROOT}/${PROJECT_NAME}"
+SERVICE_NAME=${PROJECT_NAME}    # ${PROJECT_NAME} | common | library | service | cli | vscode-extension | web-app | browser-extension | mobile-app | desktop-app
+APP_NAME=${PROJECT_NAME}        # ${PROJECT_NAME} | common | library | service | cli | vscode-extension | web-app | browser-extension | mobile-app | desktop-app
+MODULE_NAME=                    # hello | common | user | auth
+FILE_EXTENSTION=md              # md | adoc | go | ts | json | yaml | yml
+
+cd "${PROJECT_DIR:?}/${APP_NAME}" || exit 1
+
+# # Generate project file for (MODULE_NAME=)
+# FILE=${PROJECT_DIR:?}/${MODULE_NAME}.${FILE_EXTENSTION}
+# cat <<\*EOF* >"${FILE}"
+# *EOF*
+
+# Git commit changes
+DIRECTORIES_AND_FILES="db deploy doc src test README.md Makefile"
+TICKET_NUMBER=PPP-XXXX
+GIT_COMMIT_MESSAGE="Add ${DIRECTORIES_AND_FILES}"
+git add ${DIRECTORIES_AND_FILES}
+git commit -a -m "[PPP-XXXX] [${TICKET_NUMBER}] ${GIT_COMMIT_MESSAGE}"
+git status
+```
+
+---
+
+## Reference
+
+- [](<URL>)
+- [](<https://{{ GITHUB_PROJECT }}.io/>)
+- [](<https://github.com/{{ GITHUB_USER }}/{{ GITHUB_PROJECT }}>)
+- [](<https://en.wikipedia.org/wiki/{{ TOPIC }}>)
+
+---

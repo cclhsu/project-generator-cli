@@ -1,8 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString } from 'class-validator';
+import { Expose } from 'class-transformer';
 // import { Transform, Type } from 'class-transformer';
 
-export class ProjectCommonCommandOptionsDto {
+export class ProjectCommonCommandOptionsDTO {
   @ApiProperty()
   @IsString()
   configPath?: string;
@@ -53,5 +54,5 @@ export class ProjectCommonCommandOptionsDto {
 
   // @ApiProperty()
   // @IsString()
-  // gitEable?: boolean;
+  // gitEnable?: boolean;
 }

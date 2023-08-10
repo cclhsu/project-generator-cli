@@ -3,7 +3,7 @@ import { Question, QuestionSet } from 'nest-commander';
 @QuestionSet({ name: 'commit-message-questions' })
 export class CommitMessageQuestions {
   @Question({
-    message: 'Enter your commit-message:',
+    message: 'Enter commit-message:',
     name: 'commitMessage',
     type: 'input',
   })

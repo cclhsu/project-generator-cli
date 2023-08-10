@@ -3,7 +3,7 @@ import { Question, QuestionSet } from 'nest-commander';
 @QuestionSet({ name: 'git-enable-questions' })
 export class GitEnableQuestions {
   @Question({
-    message: 'Enter your git-enable:',
+    message: 'Enter git-enable:',
     name: 'gitEnable',
     type: 'list',
     default: true,
