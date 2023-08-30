@@ -1,33 +1,37 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString } from 'class-validator';
-import { Expose } from 'class-transformer';
-// import { Transform, Type } from 'class-transformer';
-// import { UserMetadataDTO } from './user-metadata.dto';
-// import { UserContentDTO } from './user-content.dto';
+import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
+  IsBoolean,
+  IsDateString,
+  IsEmail,
+  IsEnum,
+  IsIn,
+  IsNotEmpty,
+  IsNumberString,
+  IsObject,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Length,
+  Matches,
+  MaxLength,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
+import { Expose, Type } from 'class-transformer';
 
-export class GetUserByIdRequestDTO {
-  constructor(
-    name: string,
-    // metadata: UserMetadataDTO,
-    // content: UserContentDTO,
-  ) {
+export class GetUserByNameRequestDTO {
+  constructor(name: string) {
     this.name = name;
-    // this.metadata = metadata;
-    // this.content = content;
   }
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Name of the user to retrieve.',
+    example: 'John Doe',
+  })
   @Expose({ name: 'name', toPlainOnly: true })
-  @IsString()
-  name: string;
-
-  // @ApiProperty()
-  // @Expose({ name: 'metadata', toPlainOnly: true })
-  // @IsObject()
-  // metadata: UserMetadataDTO;
-
-  // @ApiProperty()
-  // @Expose({ name: 'content', toPlainOnly: true })
-  // @IsObject()
-  // content: UserContentDTO;
+  @IsString({ message: 'Name must be a string.' })
+  readonly name: string;
 }

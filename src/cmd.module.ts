@@ -13,13 +13,13 @@ import { RustModule } from './project-language/rust/rust.module';
 import { TypescriptModule } from './project-language/typescript/typescript.module';
 import { DocumentModule } from './project-document/document.module';
 import { ProjectSuiteModule } from './project-suite/project-suite.module';
-import { CommonCommandModule as ScrumCommonCommandModule } from './scrum/common/command/common-command.module';
 import { ProjectModule } from './scrum/project/project.module';
 import { IterationModule } from './scrum/iteration/iteration.module';
 import { TaskModule } from './scrum/task/task.module';
 import { TeamModule } from './scrum/team/team.module';
 import { UserModule } from './scrum/user/user.module';
 import { MetricModule } from './scrum/metric/metric.module';
+import { MessageModule } from './scrum/message/message.module';
 
 @Module({
   imports: [
@@ -36,13 +36,13 @@ import { MetricModule } from './scrum/metric/metric.module';
     TypescriptModule,
     DocumentModule,
     ProjectSuiteModule,
-    ScrumCommonCommandModule,
     UserModule,
     TeamModule,
     ProjectModule,
     IterationModule,
     TaskModule,
     MetricModule,
+    MessageModule,
   ],
   controllers: [],
   providers: [ConsoleLogger],

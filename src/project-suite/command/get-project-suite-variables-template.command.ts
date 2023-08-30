@@ -5,12 +5,12 @@ import {
   Option,
 } from 'nest-commander';
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from 'src/config/config.service';
+import { ConfigService } from '../../config/config.service';
 import { ProjectSuiteService } from '../project-suite.service';
 import { ProjectSuiteCommandOptionsDTO } from './dto/project-suite-command-options.dto';
 import { ProjectSuiteVariablesFilePathAnswerDTO } from './dto/project-suite-variables-file-path-answer.dto';
 import { ProjectSuiteVariablesFileNameAnswerDTO } from './dto/project-suite-variables-file-name-answer.dto';
-import { DEFAULT_VARIABLE_FILE_PATH } from 'src/common/constant/common.constant';
+import { DEFAULT_VARIABLE_FILE_PATH } from '../../common/constant';
 
 @Injectable()
 @SubCommand({
@@ -19,7 +19,9 @@ import { DEFAULT_VARIABLE_FILE_PATH } from 'src/common/constant/common.constant'
   options: { isDefault: true },
 })
 export class GetProjectSuiteVariablesTemplateCommand extends CommandRunner {
-  private readonly logger = new Logger(GetProjectSuiteVariablesTemplateCommand.name);
+  private readonly logger = new Logger(
+    GetProjectSuiteVariablesTemplateCommand.name,
+  );
   constructor(
     private readonly inquirer: InquirerService,
     private readonly configService: ConfigService,
@@ -67,9 +69,14 @@ export class GetProjectSuiteVariablesTemplateCommand extends CommandRunner {
       ).projectSuiteVariablesFileName;
     }
 
-    this.projectSuiteService.getVariablesTemplate(
-      projectSuiteCommandOptionsDTO,
-    );
+    try {
+      await this.projectSuiteService.getVariablesTemplate(
+        projectSuiteCommandOptionsDTO,
+      );
+    } catch (error: any) {
+      this.logger.error(error.message);
+      this.logger.debug(error.stack);
+    }
   }
 
   // @Option({

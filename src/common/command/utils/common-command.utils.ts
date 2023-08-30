@@ -1,6 +1,6 @@
 import { InquirerService } from 'nest-commander';
-import { ConfigService } from 'src/config/config.service';
-import { getProjectName } from 'src/utils/project-name/project-name.utils';
+import { ConfigService } from '../../../config/config.service';
+import { getProjectName } from '../../../utils/project-name/project-name.utils';
 import { GitProviderAnswerDTO } from '../dto/git-provider-answer.dto';
 import { ProjectCommandOptionsDTO } from '../dto/project-command-options.dto';
 import { ProjectCommonCommandOptionsDTO } from '../dto/project-common-command-options.dto';
@@ -9,7 +9,7 @@ import { ProjectNameAnswerDTO } from '../dto/project-name-answer.dto';
 import { ProjectSkeletonAnswerDTO } from '../dto/project-skeleton-answer.dto';
 import { ProjectTypeAnswerDTO } from '../dto/project-type-answer.dto';
 import { ProjectUserAnswerDTO } from '../dto/project-user-answer.dto';
-import { resolveHomePath } from 'src/utils/path/path.utils';
+import { resolveHomePath } from '../../../utils/path/path.utils';
 import { SrcRootAnswerDTO } from '../dto/src-root-answer.dto';
 import { TicketNumberAnswerDTO } from '../dto/ticket-number-answer.dto';
 

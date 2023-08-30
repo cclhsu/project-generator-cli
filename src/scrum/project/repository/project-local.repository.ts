@@ -1,12 +1,12 @@
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { v4 as uuidV4 } from 'uuid';
-import { CreateProjectRequestDTO } from '../dto/create-project-request.dto';
-import { UpdateProjectRequestDTO } from '../dto/update-project-request.dto';
+import { CreateProjectRequestDTO } from '../dto';
+import { UpdateProjectRequestDTO } from '../dto';
 import { ProjectEntity } from '../entity/project.entity';
 import { instanceToPlain, plainToInstance } from 'class-transformer';
 import { ProjectMetadataEntity } from '../entity/project-metadata.entity';
 import { ProjectContentEntity } from '../entity/project-content.entity';
-import { CommonDateEntity } from 'src/scrum/common/entity/common-date.entity';
+import { CommonDateEntity } from '../../../common/entity/common-date.entity';
 import { existsSync, mkdirSync, readFileSync } from 'fs';
 import {
   DEFAULT_DATABASE_STORAGE_DEVICE_TYPE,
@@ -17,10 +17,15 @@ import {
   DEFAULT_PROJECT_FILE_PATH,
   DEFAULT_PROJECT_PATH,
   STORAGE_DEVICE_TYPES,
-} from 'src/scrum/common/constant/repository.constant';
+} from '../../../common/constant';
 import { glob } from 'glob';
-import { createDirectory } from 'src/utils/directory/directory.utils';
-import { deleteFile } from 'src/utils/file/file.utils';
+import { createDirectory } from '../../../utils/directory/directory.utils';
+import { deleteFile } from '../../../utils/file/file.utils';
+import {
+  ProjectMetadataDTO,
+  ProjectContentDTO,
+  ProjectIdUuidDTO,
+} from '../dto';
 
 @Injectable()
 export class ProjectLocalRepository {
@@ -57,13 +62,15 @@ export class ProjectLocalRepository {
     @Inject('ReadArrayFromCSV')
     private readonly readArrayFromCSV: <T>(filePath: string) => Promise<T[]>,
     @Inject('WriteArrayToCSV')
-    private readonly writeArrayToCSV: <T>(filePath: string, data: T[]) => void,
-    // @Inject('ReadArrayFromMarkdown')
-    // private readonly readArrayFromMarkdown: <T>(filePath: string) => Promise<T[]>,
-    // @Inject('WriteArrayToMarkdown')
-    // private readonly writeArrayToMarkdown: <T>(filePath: string, data: T[]) => void,
+    private readonly writeArrayToCSV: <T>(filePath: string, data: T[]) => void, // @Inject('ReadArrayFromMarkdown') // private readonly readArrayFromMarkdown: <T>(filePath: string) => Promise<T[]>, // @Inject('WriteArrayToMarkdown') // private readonly writeArrayToMarkdown: <T>(filePath: string, data: T[]) => void,
   ) {
     this.storageStrategy = this.getStorageStrategy();
+  }
+
+  // Get all project IDs and UUIDs
+  async listProjectIdsAndUUIDs(): Promise<ProjectIdUuidDTO[]> {
+    const storage: StorageStrategy = this.getStorageStrategy();
+    return storage.listProjectIdsAndUUIDs();
   }
 
   // Get all projects
@@ -72,7 +79,7 @@ export class ProjectLocalRepository {
     return storage.listProjects();
   }
 
-  // Get a project by ID
+  // Get a project by UUID
   async getProject(UUID: string): Promise<ProjectEntity> {
     const storage: StorageStrategy = this.getStorageStrategy();
     return storage.getProject(UUID);
@@ -86,7 +93,7 @@ export class ProjectLocalRepository {
     return storage.createProject(createProjectRequestDTO);
   }
 
-  // Update a project by ID
+  // Update a project by UUID
   async updateProject(
     UUID: string,
     updateProjectRequestDTO: UpdateProjectRequestDTO,
@@ -95,16 +102,52 @@ export class ProjectLocalRepository {
     return storage.updateProject(UUID, updateProjectRequestDTO);
   }
 
-  // Delete a project by ID
+  // Delete a project by UUID
   async deleteProject(UUID: string): Promise<ProjectEntity> {
     const storage: StorageStrategy = this.getStorageStrategy();
     return storage.deleteProject(UUID);
+  }
+
+  // Get a project by ID
+  async getProjectByID(ID: string): Promise<ProjectEntity> {
+    const storage: StorageStrategy = this.getStorageStrategy();
+    return storage.getProjectByID(ID);
   }
 
   // Get a project by name
   async getProjectByName(name: string): Promise<ProjectEntity> {
     const storage: StorageStrategy = this.getStorageStrategy();
     return storage.getProjectByName(name);
+  }
+
+  // Update a project metadata by UUID
+  async updateProjectMetadata(
+    UUID: string,
+    updatedMetadata: ProjectMetadataDTO,
+  ): Promise<ProjectMetadataDTO> {
+    const storage: StorageStrategy = this.getStorageStrategy();
+    return storage.updateProjectMetadata(UUID, updatedMetadata);
+  }
+
+  // Update a project content by UUID
+  async updateProjectContent(
+    UUID: string,
+    updatedContent: ProjectContentDTO,
+  ): Promise<ProjectContentDTO> {
+    const storage: StorageStrategy = this.getStorageStrategy();
+    return storage.updateProjectContent(UUID, updatedContent);
+  }
+
+  // Get a project metadata by UUID
+  async getProjectMetadata(UUID: string): Promise<ProjectMetadataDTO> {
+    const storage: StorageStrategy = this.getStorageStrategy();
+    return storage.getProjectMetadata(UUID);
+  }
+
+  // Get a project content by UUID
+  async getProjectContent(UUID: string): Promise<ProjectContentDTO> {
+    const storage: StorageStrategy = this.getStorageStrategy();
+    return storage.getProjectContent(UUID);
   }
 
   private getStorageStrategy(): StorageStrategy {
@@ -224,6 +267,7 @@ export class ProjectLocalRepository {
 }
 
 interface StorageStrategy {
+  listProjectIdsAndUUIDs(): Promise<ProjectIdUuidDTO[]>;
   listProjects(): Promise<ProjectEntity[]>;
   getProject(UUID: string): Promise<ProjectEntity>;
   createProject(
@@ -234,16 +278,28 @@ interface StorageStrategy {
     updateProjectRequestDTO: UpdateProjectRequestDTO,
   ): Promise<ProjectEntity>;
   deleteProject(UUID: string): Promise<ProjectEntity>;
+  getProjectByID(ID: string): Promise<ProjectEntity>;
   getProjectByName(name: string): Promise<ProjectEntity>;
+  updateProjectMetadata(
+    uuid: string,
+    updatedMetadata: ProjectMetadataDTO,
+  ): Promise<ProjectMetadataDTO>;
+  updateProjectContent(
+    uuid: string,
+    updatedContent: ProjectContentDTO,
+  ): Promise<ProjectContentDTO>;
+  getProjectMetadata(uuid: string): Promise<ProjectMetadataDTO>;
+  getProjectContent(uuid: string): Promise<ProjectContentDTO>;
+  // searchProjects(query: string): Promise<ProjectEntity[]>;
 }
 
 class MemoryStorage implements StorageStrategy {
   private readonly logger = new Logger(MemoryStorage.name);
   private projects: ProjectEntity[] = [
     // new ProjectEntity(
+    //   'ABC-123',
     //   '00000000-0000-0000-0000-000000000001',
     //   new ProjectMetadataEntity(
-    //     'ABC-123',
     //     'Project 1',
     //     new CommonDateEntity(
     //       new Date('2021-01-01T00:00:00.000Z'),
@@ -261,9 +317,9 @@ class MemoryStorage implements StorageStrategy {
     //   new ProjectContentEntity(['john.doe', 'jane.doe'], 'john.doe', 'jane.doe'),
     // ),
     // new ProjectEntity(
+    //   'XYZ-789',
     //   '00000000-0000-0000-0000-000000000002',
     //   new ProjectMetadataEntity(
-    //     'XYZ-789',
     //     'Project 2',
     //     new CommonDateEntity(
     //       new Date('2021-01-01T00:00:00.000Z'),
@@ -281,6 +337,13 @@ class MemoryStorage implements StorageStrategy {
     //   new ProjectContentEntity(['john.doe', 'jane.doe'], 'john.doe', 'jane.doe'),
     // ),
   ];
+
+  async listProjectIdsAndUUIDs(): Promise<ProjectIdUuidDTO[]> {
+    return this.projects.map((project) => ({
+      ID: project.ID,
+      UUID: project.UUID,
+    }));
+  }
 
   async listProjects(): Promise<ProjectEntity[]> {
     return this.projects;
@@ -309,6 +372,7 @@ class MemoryStorage implements StorageStrategy {
       createProjectRequestDTO.content,
     );
     const newProject: ProjectEntity = new ProjectEntity(
+      createProjectRequestDTO.ID,
       newUUID,
       newProjectMetadata,
       newProjectContent,
@@ -336,6 +400,7 @@ class MemoryStorage implements StorageStrategy {
       ...instanceToPlain(updateProjectRequestDTO.content),
     };
     const updatedProject = new ProjectEntity(
+      this.projects[projectIndex].ID,
       UUID,
       updatedProjectMetadata,
       updatedProjectContent,
@@ -358,6 +423,16 @@ class MemoryStorage implements StorageStrategy {
     return deletedProject;
   }
 
+  async getProjectByID(ID: string): Promise<ProjectEntity> {
+    const project: ProjectEntity | undefined = this.projects.find(
+      (project) => project.ID === ID,
+    );
+    if (!project) {
+      throw new NotFoundException(`Project ${ID} cannot be found`);
+    }
+    return project;
+  }
+
   async getProjectByName(name: string): Promise<ProjectEntity> {
     const project: ProjectEntity | undefined = this.projects.find(
       (project) => project.metadata.name === name,
@@ -366,6 +441,87 @@ class MemoryStorage implements StorageStrategy {
       throw new NotFoundException(`Project ${name} cannot be found`);
     }
     return project;
+  }
+
+  // Update a project metadata by UUID
+  async updateProjectMetadata(
+    uuid: string,
+    updatedMetadata: ProjectMetadataDTO,
+  ): Promise<ProjectMetadataDTO> {
+    this.logger.log(
+      `Project UUID: ${uuid} | Project Metadata: ${updatedMetadata}`,
+    );
+    const projectIndex = this.projects.findIndex(
+      (project) => project.UUID === uuid,
+    );
+    if (projectIndex === -1) {
+      throw new NotFoundException(`Project ${uuid} cannot be found`);
+    }
+    const updatedProjectMetadata: ProjectMetadataEntity = {
+      ...this.projects[projectIndex].metadata,
+      ...instanceToPlain(updatedMetadata),
+    };
+    const updatedProject = new ProjectEntity(
+      this.projects[projectIndex].ID,
+      uuid,
+      updatedProjectMetadata,
+      this.projects[projectIndex].content,
+    );
+    this.projects[projectIndex] = updatedProject;
+    return updatedProject.metadata;
+  }
+
+  // Update a project content by UUID
+  async updateProjectContent(
+    uuid: string,
+    updatedContent: ProjectContentDTO,
+  ): Promise<ProjectContentDTO> {
+    this.logger.log(
+      `Project UUID: ${uuid} | Project Content: ${updatedContent}`,
+    );
+    const projectIndex = this.projects.findIndex(
+      (project) => project.UUID === uuid,
+    );
+    if (projectIndex === -1) {
+      throw new NotFoundException(`Project ${uuid} cannot be found`);
+    }
+    const updatedProjectContent: ProjectContentEntity = {
+      ...this.projects[projectIndex].content,
+      ...updatedContent,
+    };
+    this.projects[projectIndex].metadata.dates.updatedAt = new Date();
+    const updatedProject = new ProjectEntity(
+      this.projects[projectIndex].ID,
+      uuid,
+      this.projects[projectIndex].metadata,
+      updatedProjectContent,
+    );
+    this.projects[projectIndex] = updatedProject;
+    return updatedProject.content;
+  }
+
+  // Get a project metadata by UUID
+  async getProjectMetadata(uuid: string): Promise<ProjectMetadataDTO> {
+    this.logger.log(`Project UUID: ${uuid}`);
+    const projectIndex = this.projects.findIndex(
+      (project) => project.UUID === uuid,
+    );
+    if (projectIndex === -1) {
+      throw new NotFoundException(`Project ${uuid} cannot be found`);
+    }
+    return this.projects[projectIndex].metadata;
+  }
+
+  // Get a project content by UUID
+  async getProjectContent(uuid: string): Promise<ProjectContentDTO> {
+    this.logger.log(`Project UUID: ${uuid}`);
+    const projectIndex = this.projects.findIndex(
+      (project) => project.UUID === uuid,
+    );
+    if (projectIndex === -1) {
+      throw new NotFoundException(`Project ${uuid} cannot be found`);
+    }
+    return this.projects[projectIndex].content;
   }
 }
 
@@ -376,6 +532,16 @@ class SingleJsonStorage implements StorageStrategy {
     private readonly readFromJSON: <T>(filePath: string) => Promise<T[]>,
     private readonly writeToJSON: <T>(filePath: string, data: T[]) => void,
   ) {}
+
+  async listProjectIdsAndUUIDs(): Promise<ProjectIdUuidDTO[]> {
+    const projects: ProjectEntity[] = await this.readFromJSON<ProjectEntity>(
+      this.filePath,
+    );
+    return projects.map((project) => ({
+      ID: project.ID,
+      UUID: project.UUID,
+    }));
+  }
 
   async listProjects(): Promise<ProjectEntity[]> {
     return this.readFromJSON<ProjectEntity>(this.filePath);
@@ -410,6 +576,7 @@ class SingleJsonStorage implements StorageStrategy {
       createProjectRequestDTO.content,
     );
     const newProject: ProjectEntity = new ProjectEntity(
+      createProjectRequestDTO.ID,
       newUUID,
       newProjectMetadata,
       newProjectContent,
@@ -439,6 +606,7 @@ class SingleJsonStorage implements StorageStrategy {
       ...instanceToPlain(updateProjectRequestDTO.content),
     };
     const updatedProject = new ProjectEntity(
+      projects[projectIndex].ID,
       UUID,
       updatedProjectMetadata,
       updatedProjectContent,
@@ -461,6 +629,19 @@ class SingleJsonStorage implements StorageStrategy {
     return deletedProject;
   }
 
+  async getProjectByID(ID: string): Promise<ProjectEntity> {
+    const projects: ProjectEntity[] = await this.readFromJSON<ProjectEntity>(
+      this.filePath,
+    );
+    const project: ProjectEntity | undefined = projects.find(
+      (project) => project.ID === ID,
+    );
+    if (!project) {
+      throw new NotFoundException(`Project ${ID} cannot be found`);
+    }
+    return project;
+  }
+
   async getProjectByName(name: string): Promise<ProjectEntity> {
     const projects: ProjectEntity[] = await this.readFromJSON<ProjectEntity>(
       this.filePath,
@@ -473,6 +654,93 @@ class SingleJsonStorage implements StorageStrategy {
     }
     return project;
   }
+
+  // Update a project metadata by UUID
+  async updateProjectMetadata(
+    uuid: string,
+    updatedMetadata: ProjectMetadataDTO,
+  ): Promise<ProjectMetadataDTO> {
+    this.logger.log(
+      `Project UUID: ${uuid} | Project Metadata: ${updatedMetadata}`,
+    );
+    const projects: ProjectEntity[] = await this.readFromJSON<ProjectEntity>(
+      this.filePath,
+    );
+    const projectIndex = projects.findIndex((project) => project.UUID === uuid);
+    if (projectIndex === -1) {
+      throw new NotFoundException(`Project ${uuid} cannot be found`);
+    }
+    const updatedProjectMetadata: ProjectMetadataEntity = {
+      ...projects[projectIndex].metadata,
+      ...instanceToPlain(updatedMetadata),
+    };
+    const updatedProject = new ProjectEntity(
+      projects[projectIndex].ID,
+      uuid,
+      updatedProjectMetadata,
+      projects[projectIndex].content,
+    );
+    projects[projectIndex] = updatedProject;
+    this.writeToJSON(this.filePath, projects);
+    return updatedProject.metadata;
+  }
+
+  // Update a project content by UUID
+  async updateProjectContent(
+    uuid: string,
+    updatedContent: ProjectContentDTO,
+  ): Promise<ProjectContentDTO> {
+    this.logger.log(
+      `Project UUID: ${uuid} | Project Content: ${updatedContent}`,
+    );
+    const projects: ProjectEntity[] = await this.readFromJSON<ProjectEntity>(
+      this.filePath,
+    );
+    const projectIndex = projects.findIndex((project) => project.UUID === uuid);
+    if (projectIndex === -1) {
+      throw new NotFoundException(`Project ${uuid} cannot be found`);
+    }
+    const updatedProjectContent: ProjectContentEntity = {
+      ...projects[projectIndex].content,
+      ...updatedContent,
+    };
+    projects[projectIndex].metadata.dates.updatedAt = new Date();
+    const updatedProject = new ProjectEntity(
+      projects[projectIndex].ID,
+      uuid,
+      projects[projectIndex].metadata,
+      updatedProjectContent,
+    );
+    projects[projectIndex] = updatedProject;
+    this.writeToJSON(this.filePath, projects);
+    return updatedProject.content;
+  }
+
+  // Get a project metadata by UUID
+  async getProjectMetadata(uuid: string): Promise<ProjectMetadataDTO> {
+    this.logger.log(`Project UUID: ${uuid}`);
+    const projects: ProjectEntity[] = await this.readFromJSON<ProjectEntity>(
+      this.filePath,
+    );
+    const projectIndex = projects.findIndex((project) => project.UUID === uuid);
+    if (projectIndex === -1) {
+      throw new NotFoundException(`Project ${uuid} cannot be found`);
+    }
+    return projects[projectIndex].metadata;
+  }
+
+  // Get a project content by UUID
+  async getProjectContent(uuid: string): Promise<ProjectContentDTO> {
+    this.logger.log(`Project UUID: ${uuid}`);
+    const projects: ProjectEntity[] = await this.readFromJSON<ProjectEntity>(
+      this.filePath,
+    );
+    const projectIndex = projects.findIndex((project) => project.UUID === uuid);
+    if (projectIndex === -1) {
+      throw new NotFoundException(`Project ${uuid} cannot be found`);
+    }
+    return projects[projectIndex].content;
+  }
 }
 
 class MultipleJsonStorage implements StorageStrategy {
@@ -482,6 +750,27 @@ class MultipleJsonStorage implements StorageStrategy {
     private readonly readFromJSON: <T>(filePath: string) => Promise<T>,
     private readonly writeToJSON: <T>(filePath: string, data: T) => void,
   ) {}
+
+  async listProjectIdsAndUUIDs(): Promise<ProjectIdUuidDTO[]> {
+    const filesPath: string[] = glob.sync(
+      `${this.dirPath}/*.${DEFAULT_FILE_STORAGE_EXTENSION}`,
+    );
+    const projects: ProjectIdUuidDTO[] = [];
+    for (const filePath of filesPath) {
+      if (existsSync(filePath)) {
+        const project: ProjectEntity = await this.readFromJSON<ProjectEntity>(
+          filePath,
+        );
+        if (project) {
+          projects.push({
+            ID: project.ID,
+            UUID: project.UUID,
+          });
+        }
+      }
+    }
+    return projects;
+  }
 
   async listProjects(): Promise<ProjectEntity[]> {
     const filesPath: string[] = glob.sync(
@@ -523,6 +812,7 @@ class MultipleJsonStorage implements StorageStrategy {
       createProjectRequestDTO.content,
     );
     const newProject: ProjectEntity = new ProjectEntity(
+      createProjectRequestDTO.ID,
       newUUID,
       newProjectMetadata,
       newProjectContent,
@@ -553,6 +843,7 @@ class MultipleJsonStorage implements StorageStrategy {
         ...instanceToPlain(updateProjectRequestDTO.content),
       };
       const updatedProject = new ProjectEntity(
+        project.ID,
         UUID,
         updatedProjectMetadata,
         updatedProjectContent,
@@ -580,21 +871,134 @@ class MultipleJsonStorage implements StorageStrategy {
     }
   }
 
+  async getProjectByID(ID: string): Promise<ProjectEntity> {
+    const filesPath: string[] = glob.sync(
+      `${this.dirPath}/*.${DEFAULT_FILE_STORAGE_EXTENSION}`,
+    );
+    for (const filePath of filesPath) {
+      if (existsSync(filePath)) {
+        const project = await this.readFromJSON<ProjectEntity>(filePath);
+        if (project.ID === ID) {
+          return project;
+        }
+      }
+    }
+    throw new NotFoundException(`Project ${ID} cannot be found`);
+  }
+
   async getProjectByName(name: string): Promise<ProjectEntity> {
     const filesPath: string[] = glob.sync(
       `${this.dirPath}/*.${DEFAULT_FILE_STORAGE_EXTENSION}`,
     );
     for (const filePath of filesPath) {
       if (existsSync(filePath)) {
-        const projects = await this.readFromJSON<ProjectEntity[]>(filePath);
-        const project = projects.find(
-          (project) => project.metadata.name === name,
-        );
-        if (project) {
+        const project = await this.readFromJSON<ProjectEntity>(filePath);
+        if (project.metadata.name === name) {
           return project;
         }
       }
     }
     throw new NotFoundException(`Project ${name} cannot be found`);
+  }
+
+  // Update a project metadata by UUID
+  async updateProjectMetadata(
+    uuid: string,
+    updatedMetadata: ProjectMetadataDTO,
+  ): Promise<ProjectMetadataDTO> {
+    this.logger.log(
+      `Project UUID: ${uuid} | Project Metadata: ${updatedMetadata}`,
+    );
+    const filePath = `${this.dirPath}/${uuid}.${DEFAULT_FILE_STORAGE_EXTENSION}`;
+    if (existsSync(filePath)) {
+      const project: ProjectEntity = await this.readFromJSON<ProjectEntity>(
+        filePath,
+      );
+      if (!project) {
+        throw new NotFoundException(`Project ${uuid} cannot be found`);
+      }
+      const updatedProjectMetadata: ProjectMetadataEntity = {
+        ...project.metadata,
+        ...instanceToPlain(updatedMetadata),
+      };
+      const updatedProject = new ProjectEntity(
+        project.ID,
+        uuid,
+        updatedProjectMetadata,
+        project.content,
+      );
+      this.writeToJSON(filePath, updatedProject);
+      return updatedProject.metadata;
+    } else {
+      throw new NotFoundException(`Project ${uuid} cannot be found`);
+    }
+  }
+
+  // Update a project content by UUID
+  async updateProjectContent(
+    uuid: string,
+    updatedContent: ProjectContentDTO,
+  ): Promise<ProjectContentDTO> {
+    this.logger.log(
+      `Project UUID: ${uuid} | Project Content: ${updatedContent}`,
+    );
+    const filePath = `${this.dirPath}/${uuid}.${DEFAULT_FILE_STORAGE_EXTENSION}`;
+    if (existsSync(filePath)) {
+      const project: ProjectEntity = await this.readFromJSON<ProjectEntity>(
+        filePath,
+      );
+      if (!project) {
+        throw new NotFoundException(`Project ${uuid} cannot be found`);
+      }
+      const updatedProjectContent: ProjectContentEntity = {
+        ...project.content,
+        ...updatedContent,
+      };
+      project.metadata.dates.updatedAt = new Date();
+      const updatedProject = new ProjectEntity(
+        project.ID,
+        uuid,
+        project.metadata,
+        updatedProjectContent,
+      );
+      this.writeToJSON(filePath, updatedProject);
+      return updatedProject.content;
+    } else {
+      throw new NotFoundException(`Project ${uuid} cannot be found`);
+    }
+  }
+
+  // Get a project metadata by UUID
+  async getProjectMetadata(uuid: string): Promise<ProjectMetadataDTO> {
+    this.logger.log(`Project UUID: ${uuid}`);
+    const filePath = `${this.dirPath}/${uuid}.${DEFAULT_FILE_STORAGE_EXTENSION}`;
+    if (existsSync(filePath)) {
+      const project: ProjectEntity = await this.readFromJSON<ProjectEntity>(
+        filePath,
+      );
+      if (!project) {
+        throw new NotFoundException(`Project ${uuid} cannot be found`);
+      }
+      return project.metadata;
+    } else {
+      throw new NotFoundException(`Project ${uuid} cannot be found`);
+    }
+  }
+
+  // Get a project content by UUID
+  async getProjectContent(uuid: string): Promise<ProjectContentDTO> {
+    this.logger.log(`Project UUID: ${uuid}`);
+    const filePath = `${this.dirPath}/${uuid}.${DEFAULT_FILE_STORAGE_EXTENSION}`;
+    if (existsSync(filePath)) {
+      const project: ProjectEntity = await this.readFromJSON<ProjectEntity>(
+        filePath,
+      );
+      if (!project) {
+        throw new NotFoundException(`Project ${uuid} cannot be found`);
+      }
+      return project.content;
+    } else {
+      throw new NotFoundException(`Project ${uuid} cannot be found`);
+    }
   }
 }

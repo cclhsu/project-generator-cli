@@ -1,12 +1,12 @@
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { v4 as uuidV4 } from 'uuid';
-import { CreateUserRequestDTO } from '../dto/create-user-request.dto';
-import { UpdateUserRequestDTO } from '../dto/update-user-request.dto';
+import { CreateUserRequestDTO } from '../dto';
+import { UpdateUserRequestDTO } from '../dto';
 import { UserEntity } from '../entity/user.entity';
 import { instanceToPlain, plainToInstance } from 'class-transformer';
 import { UserMetadataEntity } from '../entity/user-metadata.entity';
 import { UserContentEntity } from '../entity/user-content.entity';
-import { CommonDateEntity } from 'src/scrum/common/entity/common-date.entity';
+import { CommonDateEntity } from '../../../common/entity/common-date.entity';
 import { existsSync, mkdirSync, readFileSync } from 'fs';
 import {
   DEFAULT_DATABASE_STORAGE_DEVICE_TYPE,
@@ -16,11 +16,14 @@ import {
   DEFAULT_STORAGE_FILE_TYPE,
   DEFAULT_USER_FILE_PATH,
   DEFAULT_USER_PATH,
+  PROJECT_ROLE_TYPES,
+  SCRUM_ROLE_TYPES,
   STORAGE_DEVICE_TYPES,
-} from 'src/scrum/common/constant/repository.constant';
+} from '../../../common/constant';
 import { glob } from 'glob';
-import { createDirectory } from 'src/utils/directory/directory.utils';
-import { deleteFile } from 'src/utils/file/file.utils';
+import { createDirectory } from '../../../utils/directory/directory.utils';
+import { deleteFile } from '../../../utils/file/file.utils';
+import { UserContentDTO, UserIdUuidDTO, UserMetadataDTO } from '../dto';
 
 @Injectable()
 export class UserLocalRepository {
@@ -57,12 +60,15 @@ export class UserLocalRepository {
     @Inject('ReadArrayFromCSV')
     private readonly readArrayFromCSV: <T>(filePath: string) => Promise<T[]>,
     @Inject('WriteArrayToCSV')
-    private readonly writeArrayToCSV: <T>(filePath: string, data: T[]) => void, // @Inject('ReadArrayFromMarkdown')
-  ) // private readonly readArrayFromMarkdown: <T>(filePath: string) => Promise<T[]>,
-  // @Inject('WriteArrayToMarkdown')
-  // private readonly writeArrayToMarkdown: <T>(filePath: string, data: T[]) => void,
-  {
+    private readonly writeArrayToCSV: <T>(filePath: string, data: T[]) => void, // @Inject('ReadArrayFromMarkdown') // private readonly readArrayFromMarkdown: <T>(filePath: string) => Promise<T[]>, // @Inject('WriteArrayToMarkdown') // private readonly writeArrayToMarkdown: <T>(filePath: string, data: T[]) => void,
+  ) {
     this.storageStrategy = this.getStorageStrategy();
+  }
+
+  // Get all user IDs and UUIDs
+  async listUserIdsAndUUIDs(): Promise<UserIdUuidDTO[]> {
+    const storage: StorageStrategy = this.getStorageStrategy();
+    return storage.listUserIdsAndUUIDs();
   }
 
   // Get all users
@@ -71,7 +77,7 @@ export class UserLocalRepository {
     return storage.listUsers();
   }
 
-  // Get a user by ID
+  // Get a user by UUID
   async getUser(UUID: string): Promise<UserEntity> {
     const storage: StorageStrategy = this.getStorageStrategy();
     return storage.getUser(UUID);
@@ -85,7 +91,7 @@ export class UserLocalRepository {
     return storage.createUser(createUserRequestDTO);
   }
 
-  // Update a user by ID
+  // Update a user by UUID
   async updateUser(
     UUID: string,
     updateUserRequestDTO: UpdateUserRequestDTO,
@@ -94,10 +100,16 @@ export class UserLocalRepository {
     return storage.updateUser(UUID, updateUserRequestDTO);
   }
 
-  // Delete a user by ID
+  // Delete a user by UUID
   async deleteUser(UUID: string): Promise<UserEntity> {
     const storage: StorageStrategy = this.getStorageStrategy();
     return storage.deleteUser(UUID);
+  }
+
+  // Get a user by ID
+  async getUserByID(ID: string): Promise<UserEntity> {
+    const storage: StorageStrategy = this.getStorageStrategy();
+    return storage.getUserByID(ID);
   }
 
   // Get a user by name
@@ -116,6 +128,36 @@ export class UserLocalRepository {
   async getUserByEmail(email: string): Promise<UserEntity> {
     const storage: StorageStrategy = this.getStorageStrategy();
     return storage.getUserByEmail(email);
+  }
+
+  // Update a user metadata by UUID
+  async updateUserMetadata(
+    UUID: string,
+    updatedMetadata: UserMetadataDTO,
+  ): Promise<UserMetadataDTO> {
+    const storage: StorageStrategy = this.getStorageStrategy();
+    return storage.updateUserMetadata(UUID, updatedMetadata);
+  }
+
+  // Update a user content by UUID
+  async updateUserContent(
+    UUID: string,
+    updatedContent: UserContentDTO,
+  ): Promise<UserContentDTO> {
+    const storage: StorageStrategy = this.getStorageStrategy();
+    return storage.updateUserContent(UUID, updatedContent);
+  }
+
+  // Get a user metadata by UUID
+  async getUserMetadata(UUID: string): Promise<UserMetadataDTO> {
+    const storage: StorageStrategy = this.getStorageStrategy();
+    return storage.getUserMetadata(UUID);
+  }
+
+  // Get a user content by UUID
+  async getUserContent(UUID: string): Promise<UserContentDTO> {
+    const storage: StorageStrategy = this.getStorageStrategy();
+    return storage.getUserContent(UUID);
   }
 
   private getStorageStrategy(): StorageStrategy {
@@ -217,6 +259,7 @@ export class UserLocalRepository {
 }
 
 interface StorageStrategy {
+  listUserIdsAndUUIDs(): Promise<UserIdUuidDTO[]>;
   listUsers(): Promise<UserEntity[]>;
   getUser(UUID: string): Promise<UserEntity>;
   createUser(createUserRequestDTO: CreateUserRequestDTO): Promise<UserEntity>;
@@ -225,18 +268,30 @@ interface StorageStrategy {
     updateUserRequestDTO: UpdateUserRequestDTO,
   ): Promise<UserEntity>;
   deleteUser(UUID: string): Promise<UserEntity>;
+  getUserByID(ID: string): Promise<UserEntity>;
   getUserByName(name: string): Promise<UserEntity>;
   getUserByUsername(username: string): Promise<UserEntity>;
   getUserByEmail(email: string): Promise<UserEntity>;
+  updateUserMetadata(
+    uuid: string,
+    updatedMetadata: UserMetadataDTO,
+  ): Promise<UserMetadataDTO>;
+  updateUserContent(
+    uuid: string,
+    updatedContent: UserContentDTO,
+  ): Promise<UserContentDTO>;
+  getUserMetadata(uuid: string): Promise<UserMetadataDTO>;
+  getUserContent(uuid: string): Promise<UserContentDTO>;
+  // searchUsers(query: string): Promise<UserEntity[]>;
 }
 
 class MemoryStorage implements StorageStrategy {
   private readonly logger = new Logger(MemoryStorage.name);
   private users: UserEntity[] = [
     new UserEntity(
+      'john.doe',
       '00000000-0000-0000-0000-000000000001',
       new UserMetadataEntity(
-        'john.doe',
         'John Doe',
         new CommonDateEntity(
           new Date('2021-01-01T00:00:00.000Z'),
@@ -256,15 +311,15 @@ class MemoryStorage implements StorageStrategy {
         '123456789',
         'Doe',
         'John',
-        [],
-        [],
+        ['PM'] as PROJECT_ROLE_TYPES[],
+        ['PO'] as SCRUM_ROLE_TYPES[],
         '',
       ),
     ),
     new UserEntity(
+      'jane.doe',
       '00000000-0000-0000-0000-000000000002',
       new UserMetadataEntity(
-        'jane.doe',
         'Jane Doe',
         new CommonDateEntity(
           new Date('2021-01-01T00:00:00.000Z'),
@@ -284,12 +339,19 @@ class MemoryStorage implements StorageStrategy {
         '123456789',
         'Doe',
         'Jane',
-        [],
-        [],
+        ['EM'] as PROJECT_ROLE_TYPES[],
+        ['SM'] as SCRUM_ROLE_TYPES[],
         '',
       ),
     ),
   ];
+
+  async listUserIdsAndUUIDs(): Promise<UserIdUuidDTO[]> {
+    return this.users.map((user) => ({
+      ID: user.ID,
+      UUID: user.UUID,
+    }));
+  }
 
   async listUsers(): Promise<UserEntity[]> {
     return this.users;
@@ -318,6 +380,7 @@ class MemoryStorage implements StorageStrategy {
       createUserRequestDTO.content,
     );
     const newUser: UserEntity = new UserEntity(
+      createUserRequestDTO.ID,
       newUUID,
       newUserMetadata,
       newUserContent,
@@ -343,6 +406,7 @@ class MemoryStorage implements StorageStrategy {
       ...updateUserRequestDTO.content,
     };
     const updatedUser = new UserEntity(
+      this.users[userIndex].ID,
       UUID,
       updatedUserMetadata,
       updatedUserContent,
@@ -360,6 +424,16 @@ class MemoryStorage implements StorageStrategy {
     return deletedUser;
   }
 
+  async getUserByID(ID: string): Promise<UserEntity> {
+    const user: UserEntity | undefined = this.users.find(
+      (user) => user.ID === ID,
+    );
+    if (!user) {
+      throw new NotFoundException(`User ${ID} cannot be found`);
+    }
+    return user;
+  }
+
   async getUserByName(name: string): Promise<UserEntity> {
     const user: UserEntity | undefined = this.users.find(
       (user) => user.metadata.name === name,
@@ -373,7 +447,7 @@ class MemoryStorage implements StorageStrategy {
   // Get a user by username
   async getUserByUsername(username: string): Promise<UserEntity> {
     this.logger.log(`User Username: ${username}`);
-    const user = this.users.find((user) => user.metadata.ID === username);
+    const user = this.users.find((user) => user.ID === username);
     if (!user) {
       throw new NotFoundException(`User ${username} cannot be found`);
     }
@@ -389,6 +463,75 @@ class MemoryStorage implements StorageStrategy {
     }
     return user;
   }
+
+  // Update a user metadata by UUID
+  async updateUserMetadata(
+    uuid: string,
+    updatedMetadata: UserMetadataDTO,
+  ): Promise<UserMetadataDTO> {
+    this.logger.log(`User UUID: ${uuid} | User Metadata: ${updatedMetadata}`);
+    const userIndex = this.users.findIndex((user) => user.UUID === uuid);
+    if (userIndex === -1) {
+      throw new NotFoundException(`User ${uuid} cannot be found`);
+    }
+    const updatedUserMetadata: UserMetadataEntity = {
+      ...this.users[userIndex].metadata,
+      ...instanceToPlain(updatedMetadata),
+    };
+    const updatedUser = new UserEntity(
+      this.users[userIndex].ID,
+      uuid,
+      updatedUserMetadata,
+      this.users[userIndex].content,
+    );
+    this.users[userIndex] = updatedUser;
+    return updatedUser.metadata;
+  }
+
+  // Update a user content by UUID
+  async updateUserContent(
+    uuid: string,
+    updatedContent: UserContentDTO,
+  ): Promise<UserContentDTO> {
+    this.logger.log(`User UUID: ${uuid} | User Content: ${updatedContent}`);
+    const userIndex = this.users.findIndex((user) => user.UUID === uuid);
+    if (userIndex === -1) {
+      throw new NotFoundException(`User ${uuid} cannot be found`);
+    }
+    const updatedUserContent: UserContentEntity = {
+      ...this.users[userIndex].content,
+      ...updatedContent,
+    };
+    this.users[userIndex].metadata.dates.updatedAt = new Date();
+    const updatedUser = new UserEntity(
+      this.users[userIndex].ID,
+      uuid,
+      this.users[userIndex].metadata,
+      updatedUserContent,
+    );
+    this.users[userIndex] = updatedUser;
+    return updatedUser.content;
+  }
+
+  // Get a user metadata by UUID
+  async getUserMetadata(uuid: string): Promise<UserMetadataDTO> {
+    this.logger.log(`User UUID: ${uuid}`);
+    const userIndex = this.users.findIndex((user) => user.UUID === uuid);
+    if (userIndex === -1) {
+      throw new NotFoundException(`User ${uuid} cannot be found`);
+    }
+    return this.users[userIndex].metadata;
+  }
+
+  // Get a user content by UUID
+  async getUserContent(uuid: string): Promise<UserContentDTO> {
+    this.logger.log(`User UUID: ${uuid}`);
+    const userIndex = this.users.findIndex((user) => user.UUID === uuid);
+    if (userIndex === -1) {
+      throw new NotFoundException(`User ${uuid} cannot be found`);
+    }
+    return this.users[userIndex].content;
+  }
 }
 
 class SingleJsonStorage implements StorageStrategy {
@@ -398,6 +541,16 @@ class SingleJsonStorage implements StorageStrategy {
     private readonly readFromJSON: <T>(filePath: string) => Promise<T[]>,
     private readonly writeToJSON: <T>(filePath: string, data: T[]) => void,
   ) {}
+
+  async listUserIdsAndUUIDs(): Promise<UserIdUuidDTO[]> {
+    const users: UserEntity[] = await this.readFromJSON<UserEntity>(
+      this.filePath,
+    );
+    return users.map((user) => ({
+      ID: user.ID,
+      UUID: user.UUID,
+    }));
+  }
 
   async listUsers(): Promise<UserEntity[]> {
     return this.readFromJSON<UserEntity>(this.filePath);
@@ -432,6 +585,7 @@ class SingleJsonStorage implements StorageStrategy {
       createUserRequestDTO.content,
     );
     const newUser: UserEntity = new UserEntity(
+      createUserRequestDTO.ID,
       newUUID,
       newUserMetadata,
       newUserContent,
@@ -461,6 +615,7 @@ class SingleJsonStorage implements StorageStrategy {
       ...updateUserRequestDTO.content,
     };
     const updatedUser = new UserEntity(
+      users[userIndex].ID,
       UUID,
       updatedUserMetadata,
       updatedUserContent,
@@ -483,6 +638,17 @@ class SingleJsonStorage implements StorageStrategy {
     return deletedUser;
   }
 
+  async getUserByID(ID: string): Promise<UserEntity> {
+    const users: UserEntity[] = await this.readFromJSON<UserEntity>(
+      this.filePath,
+    );
+    const user: UserEntity | undefined = users.find((user) => user.ID === ID);
+    if (!user) {
+      throw new NotFoundException(`User ${ID} cannot be found`);
+    }
+    return user;
+  }
+
   async getUserByName(name: string): Promise<UserEntity> {
     const users: UserEntity[] = await this.readFromJSON<UserEntity>(
       this.filePath,
@@ -502,7 +668,7 @@ class SingleJsonStorage implements StorageStrategy {
     const users: UserEntity[] = await this.readFromJSON<UserEntity>(
       this.filePath,
     );
-    const user = users.find((user) => user.metadata.ID === username);
+    const user = users.find((user) => user.ID === username);
     if (!user) {
       throw new NotFoundException(`User ${username} cannot be found`);
     }
@@ -521,6 +687,89 @@ class SingleJsonStorage implements StorageStrategy {
     }
     return user;
   }
+
+  // Update a user metadata by UUID
+  async updateUserMetadata(
+    uuid: string,
+    updatedMetadata: UserMetadataDTO,
+  ): Promise<UserMetadataDTO> {
+    this.logger.log(`User UUID: ${uuid} | User Metadata: ${updatedMetadata}`);
+    const users: UserEntity[] = await this.readFromJSON<UserEntity>(
+      this.filePath,
+    );
+    const userIndex = users.findIndex((user) => user.UUID === uuid);
+    if (userIndex === -1) {
+      throw new NotFoundException(`User ${uuid} cannot be found`);
+    }
+    const updatedUserMetadata: UserMetadataEntity = {
+      ...users[userIndex].metadata,
+      ...instanceToPlain(updatedMetadata),
+    };
+    const updatedUser = new UserEntity(
+      users[userIndex].ID,
+      uuid,
+      updatedUserMetadata,
+      users[userIndex].content,
+    );
+    users[userIndex] = updatedUser;
+    this.writeToJSON(this.filePath, users);
+    return updatedUser.metadata;
+  }
+
+  // Update a user content by UUID
+  async updateUserContent(
+    uuid: string,
+    updatedContent: UserContentDTO,
+  ): Promise<UserContentDTO> {
+    this.logger.log(`User UUID: ${uuid} | User Content: ${updatedContent}`);
+    const users: UserEntity[] = await this.readFromJSON<UserEntity>(
+      this.filePath,
+    );
+    const userIndex = users.findIndex((user) => user.UUID === uuid);
+    if (userIndex === -1) {
+      throw new NotFoundException(`User ${uuid} cannot be found`);
+    }
+    const updatedUserContent: UserContentEntity = {
+      ...users[userIndex].content,
+      ...updatedContent,
+    };
+    users[userIndex].metadata.dates.updatedAt = new Date();
+    const updatedUser = new UserEntity(
+      users[userIndex].ID,
+      uuid,
+      users[userIndex].metadata,
+      updatedUserContent,
+    );
+    users[userIndex] = updatedUser;
+    this.writeToJSON(this.filePath, users);
+    return updatedUser.content;
+  }
+
+  // Get a user metadata by UUID
+  async getUserMetadata(uuid: string): Promise<UserMetadataDTO> {
+    this.logger.log(`User UUID: ${uuid}`);
+    const users: UserEntity[] = await this.readFromJSON<UserEntity>(
+      this.filePath,
+    );
+    const userIndex = users.findIndex((user) => user.UUID === uuid);
+    if (userIndex === -1) {
+      throw new NotFoundException(`User ${uuid} cannot be found`);
+    }
+    return users[userIndex].metadata;
+  }
+
+  // Get a user content by UUID
+  async getUserContent(uuid: string): Promise<UserContentDTO> {
+    this.logger.log(`User UUID: ${uuid}`);
+    const users: UserEntity[] = await this.readFromJSON<UserEntity>(
+      this.filePath,
+    );
+    const userIndex = users.findIndex((user) => user.UUID === uuid);
+    if (userIndex === -1) {
+      throw new NotFoundException(`User ${uuid} cannot be found`);
+    }
+    return users[userIndex].content;
+  }
 }
 
 class MultipleJsonStorage implements StorageStrategy {
@@ -530,6 +779,25 @@ class MultipleJsonStorage implements StorageStrategy {
     private readonly readFromJSON: <T>(filePath: string) => Promise<T>,
     private readonly writeToJSON: <T>(filePath: string, data: T) => void,
   ) {}
+
+  async listUserIdsAndUUIDs(): Promise<UserIdUuidDTO[]> {
+    const filesPath: string[] = glob.sync(
+      `${this.dirPath}/*.${DEFAULT_FILE_STORAGE_EXTENSION}`,
+    );
+    const users: UserEntity[] = [];
+    for (const filePath of filesPath) {
+      if (existsSync(filePath)) {
+        const user: UserEntity = await this.readFromJSON<UserEntity>(filePath);
+        if (user) {
+          users.push(user);
+        }
+      }
+    }
+    return users.map((user) => ({
+      ID: user.ID,
+      UUID: user.UUID,
+    }));
+  }
 
   async listUsers(): Promise<UserEntity[]> {
     const filesPath: string[] = glob.sync(
@@ -569,6 +837,7 @@ class MultipleJsonStorage implements StorageStrategy {
       createUserRequestDTO.content,
     );
     const newUser: UserEntity = new UserEntity(
+      createUserRequestDTO.ID,
       newUUID,
       newUserMetadata,
       newUserContent,
@@ -597,6 +866,7 @@ class MultipleJsonStorage implements StorageStrategy {
         ...updateUserRequestDTO.content,
       };
       const updatedUser = new UserEntity(
+        user.ID,
         UUID,
         updatedUserMetadata,
         updatedUserContent,
@@ -625,15 +895,29 @@ class MultipleJsonStorage implements StorageStrategy {
     }
   }
 
+  async getUserByID(ID: string): Promise<UserEntity> {
+    const filesPath: string[] = glob.sync(
+      `${this.dirPath}/*.${DEFAULT_FILE_STORAGE_EXTENSION}`,
+    );
+    for (const filePath of filesPath) {
+      if (existsSync(filePath)) {
+        const user: UserEntity = await this.readFromJSON<UserEntity>(filePath);
+        if (user.ID === ID) {
+          return user;
+        }
+      }
+    }
+    throw new NotFoundException(`User ${name} cannot be found`);
+  }
+
   async getUserByName(name: string): Promise<UserEntity> {
     const filesPath: string[] = glob.sync(
       `${this.dirPath}/*.${DEFAULT_FILE_STORAGE_EXTENSION}`,
     );
     for (const filePath of filesPath) {
       if (existsSync(filePath)) {
-        const users = await this.readFromJSON<UserEntity[]>(filePath);
-        const user = users.find((user) => user.metadata.name === name);
-        if (user) {
+        const user: UserEntity = await this.readFromJSON<UserEntity>(filePath);
+        if (user.metadata.name === name) {
           return user;
         }
       }
@@ -650,7 +934,7 @@ class MultipleJsonStorage implements StorageStrategy {
     for (const filePath of filesPath) {
       if (existsSync(filePath)) {
         const users = await this.readFromJSON<UserEntity[]>(filePath);
-        const user = users.find((user) => user.metadata.ID === username);
+        const user = users.find((user) => user.ID === username);
         if (user) {
           return user;
         }
@@ -675,5 +959,94 @@ class MultipleJsonStorage implements StorageStrategy {
       }
     }
     throw new NotFoundException(`User ${email} cannot be found`);
+  }
+
+  // Update a user metadata by UUID
+  async updateUserMetadata(
+    uuid: string,
+    updatedMetadata: UserMetadataDTO,
+  ): Promise<UserMetadataDTO> {
+    this.logger.log(`User UUID: ${uuid} | User Metadata: ${updatedMetadata}`);
+    const filePath = `${this.dirPath}/${uuid}.${DEFAULT_FILE_STORAGE_EXTENSION}`;
+    if (existsSync(filePath)) {
+      const user: UserEntity = await this.readFromJSON<UserEntity>(filePath);
+      if (!user) {
+        throw new NotFoundException(`User ${uuid} cannot be found`);
+      }
+      const updatedUserMetadata: UserMetadataEntity = {
+        ...user.metadata,
+        ...instanceToPlain(updatedMetadata),
+      };
+      const updatedUser = new UserEntity(
+        user.ID,
+        uuid,
+        updatedUserMetadata,
+        user.content,
+      );
+      this.writeToJSON(filePath, updatedUser);
+      return updatedUser.metadata;
+    } else {
+      throw new NotFoundException(`User ${uuid} cannot be found`);
+    }
+  }
+
+  // Update a user content by UUID
+  async updateUserContent(
+    uuid: string,
+    updatedContent: UserContentDTO,
+  ): Promise<UserContentDTO> {
+    this.logger.log(`User UUID: ${uuid} | User Content: ${updatedContent}`);
+    const filePath = `${this.dirPath}/${uuid}.${DEFAULT_FILE_STORAGE_EXTENSION}`;
+    if (existsSync(filePath)) {
+      const user: UserEntity = await this.readFromJSON<UserEntity>(filePath);
+      if (!user) {
+        throw new NotFoundException(`User ${uuid} cannot be found`);
+      }
+      const updatedUserContent: UserContentEntity = {
+        ...user.content,
+        ...updatedContent,
+      };
+      user.metadata.dates.updatedAt = new Date();
+      const updatedUser = new UserEntity(
+        user.ID,
+        uuid,
+        user.metadata,
+        updatedUserContent,
+      );
+      this.writeToJSON(filePath, updatedUser);
+      return updatedUser.content;
+    } else {
+      throw new NotFoundException(`User ${uuid} cannot be found`);
+    }
+  }
+
+  // Get a user metadata by UUID
+  async getUserMetadata(uuid: string): Promise<UserMetadataDTO> {
+    this.logger.log(`User UUID: ${uuid}`);
+    const filePath = `${this.dirPath}/${uuid}.${DEFAULT_FILE_STORAGE_EXTENSION}`;
+    if (existsSync(filePath)) {
+      const user: UserEntity = await this.readFromJSON<UserEntity>(filePath);
+      if (!user) {
+        throw new NotFoundException(`User ${uuid} cannot be found`);
+      }
+      return user.metadata;
+    } else {
+      throw new NotFoundException(`User ${uuid} cannot be found`);
+    }
+  }
+
+  // Get a user content by UUID
+  async getUserContent(uuid: string): Promise<UserContentDTO> {
+    this.logger.log(`User UUID: ${uuid}`);
+    const filePath = `${this.dirPath}/${uuid}.${DEFAULT_FILE_STORAGE_EXTENSION}`;
+    if (existsSync(filePath)) {
+      const user: UserEntity = await this.readFromJSON<UserEntity>(filePath);
+      if (!user) {
+        throw new NotFoundException(`User ${uuid} cannot be found`);
+      }
+      return user.content;
+    } else {
+      throw new NotFoundException(`User ${uuid} cannot be found`);
+    }
   }
 }

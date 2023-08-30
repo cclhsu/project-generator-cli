@@ -5,7 +5,7 @@ import { GetConfigCommand } from './get-config.command';
 import { CreateConfigCommand } from './create-config.command';
 import { UpdateConfigCommand } from './update-config.command';
 import { DeleteConfigCommand } from './delete-config.command';
-// import { ConfigService } from 'src/config/config.service';
+// import { ConfigService } from '../../../config/config.service';
 
 @Injectable()
 @Command({

@@ -1,15 +1,27 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  ArrayMaxSize,
+  ArrayMinSize,
   IsArray,
+  IsBoolean,
   IsDateString,
   IsEmail,
+  IsEnum,
+  IsIn,
+  IsNotEmpty,
+  IsNumberString,
   IsObject,
+  IsOptional,
   IsString,
+  IsUUID,
+  Length,
+  Matches,
+  MaxLength,
   MinLength,
-  isObject,
+  ValidateNested,
 } from 'class-validator';
-import { Expose } from 'class-transformer';
-import { GherkinStepEntity, StepType } from './gherkin-step.entity';
+import { Expose, Type } from 'class-transformer';
+import { GherkinStepEntity } from './gherkin-step.entity';
 
 // GherkinScenario Entity
 export class GherkinScenarioEntity {
@@ -24,10 +36,44 @@ export class GherkinScenarioEntity {
     this.tags = tags;
     this.examples = examples;
   }
+
+  @ApiProperty({
+    description: 'Name of the Gherkin scenario.',
+    example: 'Successful login',
+  })
+  @Expose({ name: 'name', toPlainOnly: true })
+  @IsString({ message: 'Name must be a string' })
   name: string;
+
+  @ApiProperty({
+    description: 'Steps of the Gherkin scenario.',
+    type: [GherkinStepEntity],
+  })
+  @Expose({ name: 'steps', toPlainOnly: true })
+  @ValidateNested({ each: true })
+  @Type(() => GherkinStepEntity)
   steps: GherkinStepEntity[];
-  tags?: string[]; // Scenario tags
-  examples?: GherkinStepEntity[][]; // Scenario outline examples
+
+  @ApiProperty({
+    description: 'Tags for the Gherkin scenario.',
+    example: ['@smoke', '@login'],
+  })
+  @Expose({ name: 'tags', toPlainOnly: true })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  tags?: string[];
+
+  @ApiProperty({
+    description: 'Examples for the Gherkin scenario outline.',
+    type: [[GherkinStepEntity]],
+  })
+  @Expose({ name: 'examples', toPlainOnly: true })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => GherkinStepEntity)
+  examples?: GherkinStepEntity[][];
 }
 
 // Example usage:

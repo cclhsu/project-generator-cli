@@ -6,9 +6,10 @@ import {
 } from 'nest-commander';
 import { Injectable, Logger } from '@nestjs/common';
 import { UserService } from '../user.service';
-import { UserCommandOptionsDTO } from './dto/user-command-options.dto';
-import { GetUserCommandOptionsDTO } from './dto/get-user-command-options.dto';
-import { UuidAnswerDTO } from '../../common/command/dto/uuid-answer.dto';
+import { UserDTO } from '../dto/user.dto';
+import { UuidAnswerDTO } from '../../../common/command/dto';
+import { validateUuid } from '../../../common/command/validation';
+import { GetUserByUuidRequestDTO } from '../dto';
 
 @Injectable()
 @SubCommand({
@@ -29,32 +30,33 @@ export class GetUserCommand extends CommandRunner {
     options?: Record<string, any> | undefined,
   ): Promise<void> {
     this.logger.debug('>>> Getting user');
-    // this.logger.debug(passedParams);
-    // this.logger.debug(options);
+    // this.logger.verbose('passedParam: ' + JSON.stringify(passedParams, null, 2));
+    // this.logger.verbose('options: ' + JSON.stringify(options, null, 2));
 
-    const userCommandOptions: GetUserCommandOptionsDTO = {
+    const user: GetUserByUuidRequestDTO = {
       UUID: options?.uuid ?? '00000000-0000-0000-0000-000000000000',
       // metadata: null,
       // content: null,
       // ...options,
     };
 
-    while (!userCommandOptions.UUID) {
-      userCommandOptions.UUID = (
+    // ********************************************************************
+
+    while (!user.UUID) {
+      user.UUID = (
         await this.inquirer.ask<UuidAnswerDTO>('uuid-questions', options)
       ).UUID;
     }
 
-    this.displayResults(userCommandOptions.UUID ?? 'N/A');
+    this.logger.verbose(`config: ${JSON.stringify(user.UUID, null, 2)}`);
 
-    const user: UserCommandOptionsDTO = await this.userService.getUser(
-      userCommandOptions.UUID,
-    );
-    console.log(JSON.stringify(user, null, 2));
-  }
-
-  displayResults(UUID: string): void {
-    console.log(`UUID: ${UUID}`);
+    try {
+      const userDTO: UserDTO = await this.userService.getUser(user.UUID);
+      console.log(JSON.stringify(userDTO, null, 2));
+    } catch (error: any) {
+      this.logger.error(error.message);
+      this.logger.debug(error.stack);
+    }
   }
 
   @Option({
@@ -63,7 +65,11 @@ export class GetUserCommand extends CommandRunner {
     // defaultValue: '00000000-0000-0000-0000-000000000000',
   })
   parseUUID(val: string): string {
-    return val;
+    const res = validateUuid(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 }
 

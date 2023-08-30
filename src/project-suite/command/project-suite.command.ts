@@ -1,6 +1,6 @@
 import { Command, CommandRunner, InquirerService } from 'nest-commander';
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from 'src/config/config.service';
+import { ConfigService } from '../../config/config.service';
 import { ProjectSuiteService } from '../project-suite.service';
 import { GetProjectSuiteVariablesTemplateCommand } from './get-project-suite-variables-template.command';
 import { GenerateProjectSuiteCommand } from './generate-project-suite.command';
@@ -10,7 +10,10 @@ import { GenerateProjectSuiteCommand } from './generate-project-suite.command';
   name: 'project-suite',
   description: 'A set of commands for managing project-suite project',
   arguments: '<action> [options]',
-  subCommands: [GetProjectSuiteVariablesTemplateCommand, GenerateProjectSuiteCommand],
+  subCommands: [
+    GetProjectSuiteVariablesTemplateCommand,
+    GenerateProjectSuiteCommand,
+  ],
 })
 export class ProjectSuiteCommand extends CommandRunner {
   private readonly logger = new Logger(ProjectSuiteCommand.name);

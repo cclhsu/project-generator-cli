@@ -7,8 +7,15 @@ export class ConfirmDeleteQuestions {
     name: 'confirmDelete',
     type: 'confirm',
     default: false,
+    validate: (val: boolean) => {
+      if (typeof val === 'boolean') {
+        return true;
+      } else {
+        return 'ConfirmDelete is required';
+      }
+    },
   })
-  parseConfigPath(val: string): string {
+  parseConfirmDelete(val: string): string {
     return val;
   }
 }

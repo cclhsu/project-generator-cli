@@ -7,8 +7,15 @@ export class ConfirmUpdateQuestions {
     name: 'confirmUpdate',
     type: 'confirm',
     default: false,
+    validate: (val: boolean) => {
+      if (typeof val === 'boolean') {
+        return true;
+      } else {
+        return 'ConfirmUpdate is required';
+      }
+    },
   })
-  parseConfigPath(val: string): string {
+  parseConfirmUpdate(val: string): string {
     return val;
   }
 }

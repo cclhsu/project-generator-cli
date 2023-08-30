@@ -5,8 +5,8 @@ import {
   Option,
 } from 'nest-commander';
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from 'src/config/config.service';
-import { TypescriptService } from 'src/project-language/typescript/typescript.service';
+import { ConfigService } from '../../../config/config.service';
+import { TypescriptService } from '../../../project-language/typescript/typescript.service';
 import { InitTypescriptCommand } from './init-typescript.command';
 import { BuildTypescriptCommand } from './build-typescript.command';
 import { RunTypescriptCommand } from './run-typescript.command';

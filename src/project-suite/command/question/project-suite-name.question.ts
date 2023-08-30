@@ -6,13 +6,13 @@ export class ProjectSuiteNameQuestions {
     message: 'Enter project-suite-name:',
     name: 'projectSuiteName',
     type: 'input',
-    validate: (val: string) => {
-      if (val.trim() !== '' && val.trim().toLowerCase() !== 'n/a') {
-        return true;
-      } else {
-        return 'project-suite-name is required';
-      }
-    },
+    // validate: (val: string) => {
+    //   if (val.trim() !== '' && val.trim().toLowerCase() !== 'n/a') {
+    //     return true;
+    //   } else {
+    //     return 'project-suite-name is required';
+    //   }
+    // },
   })
   parseProjecSuitetName(val: string): string {
     return val;

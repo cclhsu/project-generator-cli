@@ -6,14 +6,58 @@ import {
 } from 'nest-commander';
 import { Injectable, Logger } from '@nestjs/common';
 import { IterationService } from '../iteration.service';
-import { CreateIterationRequestDTO } from '../dto/create-iteration-request.dto';
-import { IterationCommandOptionsDTO } from './dto/iteration-command-options.dto';
-import { IterationMetadataCommandOptionsDTO } from './dto/iteration-metadata-command-options.dto';
-import { IterationContentCommandOptionsDTO } from './dto/iteration-content-command-options.dto';
-import { UuidAnswerDTO } from '../../common/command/dto/uuid-answer.dto';
-import { IdAnswerDTO } from '../../common/command/dto/id-answer.dto';
-import { NameAnswerDTO } from '../../common/command/dto/name-answer.dto';
-import { getCommonDateCommandOptionsDTO } from '../../common/command/utils/common-date-command.utils';
+import { CreateIterationRequestDTO } from '../dto';
+import { validate } from 'class-validator';
+import {
+  IterationDTO,
+  IterationContentDTO,
+  IterationMetadataDTO,
+} from '../dto';
+import { getCommonDateDTO } from '../../../common/command/utils/common-date-command.utils';
+import {
+  DEFAULT_SCRUM_COLUMN,
+  SCRUM_COLUMNS,
+  TASK_PRIORITY_TYPE_ARRAY,
+  TASK_RISK_TYPE_ARRAY,
+  TASK_STATUS_TYPE_ARRAY,
+} from '../../../common/constant';
+import {
+  ColumnsAnswerDTO,
+  DescriptionAnswerDTO,
+  GoalAnswerDTO,
+  IdAnswerDTO,
+  IterationIdAnswerDTO,
+  IterationNameAnswerDTO,
+  IterationPriorityAnswerDTO,
+  IterationRiskAnswerDTO,
+  IterationStatusAnswerDTO,
+  IterationTasksAnswerDTO,
+  IterationTypeAnswerDTO,
+  TagsAnswerDTO,
+} from '../../../common/command/dto';
+import {
+  isValidUuids,
+  validateCompletedAt,
+  validateCreatedAt,
+  validateEndDate,
+  validateIterationId,
+  validateIterationName,
+  validateIterationType,
+  validateProjectStatus,
+  validateStartDate,
+  validateStartedAt,
+  validateTaskPriority,
+  validateTaskRisk,
+  validateUpdatedAt,
+  validateUserId,
+  validateUuid,
+} from '../../../common/command/validation';
+import {
+  convertStringToArray,
+  convertStringToIdUuidStatusArray,
+  isValidIdUuidStatusArray,
+} from '../../../utils/array';
+import { IdUuidStatusDTO } from '../../../common/dto';
 
 @Injectable()
 @SubCommand({
@@ -34,88 +78,198 @@ export class CreateIterationCommand extends CommandRunner {
     options?: Record<string, any> | undefined,
   ): Promise<void> {
     this.logger.debug('>>> Creating iteration');
-    // this.logger.debug(passedParams);
-    // this.logger.debug(options);
+    // this.logger.verbose('passedParam: ' + JSON.stringify(passedParams, null, 2));
+    // this.logger.verbose('options: ' + JSON.stringify(options, null, 2));
 
-    const iterationMetadataCommandOptions: IterationMetadataCommandOptionsDTO =
-      {
-        ID: options?.id ?? '',
-        name: options?.name ?? '',
-        status: options?.status ?? '',
-        priority: options?.priority ?? '',
-        risk: options?.risk ?? '',
-        tags: options?.tags ?? [],
-        dates: options?.dates ?? undefined,
-        // iterationType: options?.iterationType ?? '',
-        // storyPoints: options?.storyPoints ?? '',
-      };
-    const IterationContentCommandOptions: IterationContentCommandOptionsDTO = {
+    const iterationMetadata: IterationMetadataDTO = {
+      name: options?.name ?? '',
+      status: options?.status ?? '',
+      priority: options?.priority ?? '',
+      risk: options?.risk ?? '',
+      tags: options?.tags ?? [],
+      dates: options?.dates ?? undefined,
+      iterationType: options?.iterationType ?? '',
+      // storyPoints: options?.storyPoints ?? '',
+    };
+    const IterationContent: IterationContentDTO = {
       description: options?.description ?? '',
       goal: options?.goal ?? '',
-      // tasks: options?.tasks ?? [],
+      tasks: options?.tasks ?? [],
       columns: options?.columns ?? [],
     };
-    const iterationCommandOptions: IterationCommandOptionsDTO = {
+    const iteration: IterationDTO = {
+      ID: options?.id ?? '',
       UUID: options?.uuid ?? '00000000-0000-0000-0000-000000000000',
-      metadata: iterationMetadataCommandOptions,
-      content: IterationContentCommandOptions,
+      metadata: iterationMetadata,
+      content: IterationContent,
       // ...options,
     };
 
-    // while (!iterationCommandOptions.UUID) {
-    //   iterationCommandOptions.UUID = (
+    // ********************************************************************
+
+    while (!iteration.ID) {
+      iteration.ID = (
+        await this.inquirer.ask<IterationIdAnswerDTO>(
+          'iteration-id-questions',
+          options,
+        )
+      ).ID;
+    }
+
+    // while (!iteration.UUID) {
+    //   iteration.UUID = (
     //     await this.inquirer.ask<UuidAnswerDTO>('uuid-questions', options)
     //   ).UUID;
     // }
 
-    while (!iterationCommandOptions.metadata.ID) {
-      iterationCommandOptions.metadata.ID = (
-        await this.inquirer.ask<IdAnswerDTO>('id-questions', options)
-      ).ID;
+    // ********************************************************************
+    // Update Metadata
+
+    while (!iteration.metadata.name) {
+      iteration.metadata.name = (
+        await this.inquirer.ask<IterationNameAnswerDTO>(
+          'iteration-name-questions',
+          options,
+        )
+      ).iterationName;
     }
 
-    while (!iterationCommandOptions.metadata.name) {
-      iterationCommandOptions.metadata.name = (
-        await this.inquirer.ask<NameAnswerDTO>('name-questions', options)
-      ).name;
+    while (!iteration.metadata.status) {
+      iteration.metadata.status = (
+        await this.inquirer.ask<IterationStatusAnswerDTO>(
+          'iteration-status-questions',
+          options,
+        )
+      ).iterationStatus;
     }
+
+    while (!iteration.metadata.priority) {
+      iteration.metadata.priority = (
+        await this.inquirer.ask<IterationPriorityAnswerDTO>(
+          'iteration-priority-questions',
+          options,
+        )
+      ).iterationPriority;
+    }
+
+    while (!iteration.metadata.risk) {
+      iteration.metadata.risk = (
+        await this.inquirer.ask<IterationRiskAnswerDTO>(
+          'iteration-risk-questions',
+          options,
+        )
+      ).iterationRisk;
+    }
+
+    while (!iteration.metadata.tags) {
+      iteration.metadata.tags = (
+        await this.inquirer.ask<TagsAnswerDTO>('tags-questions', options)
+      ).tags;
+    }
+
+    while (!iteration.metadata.iterationType) {
+      iteration.metadata.iterationType = (
+        await this.inquirer.ask<IterationTypeAnswerDTO>(
+          'iteration-type-questions',
+          options,
+        )
+      ).iterationType;
+    }
+
+    // while (!iteration.metadata.storyPoints) {
+    //   iteration.metadata.storyPoints = (
+    //     await this.inquirer.ask<IterationStoryPointsAnswerDTO>(
+    //       'iteration-story-points-questions',
+    //       options,
+    //     )
+    //   ).iterationStoryPoints;
+    // }
+
+    // ********************************************************************
+    // Update Dates
+
+    iteration.metadata.dates = await getCommonDateDTO(
+      // this.configService,
+      this.inquirer,
+      options,
+    );
 
     // ********************************************************************
 
-    iterationCommandOptions.metadata.dates =
-      await getCommonDateCommandOptionsDTO(
-        // this.configService,
-        this.inquirer,
-        options,
-      );
+    while (!iteration.content.description) {
+      iteration.content.description = (
+        await this.inquirer.ask<DescriptionAnswerDTO>(
+          'description-questions',
+          options,
+        )
+      ).description;
+    }
 
-    // ********************************************************************
+    while (!iteration.content.goal) {
+      iteration.content.goal = (
+        await this.inquirer.ask<GoalAnswerDTO>('goal-questions', options)
+      ).goal;
+    }
 
-    console.log(iterationCommandOptions);
+    while (!iteration.content.tasks) {
+      iteration.content.tasks = (
+        await this.inquirer.ask<IterationTasksAnswerDTO>(
+          'iteration-tasks-questions',
+          options,
+        )
+      ).iterationTasks;
+    }
+
+    while (!iteration.content.columns) {
+      iteration.content.columns = (
+        await this.inquirer.ask<ColumnsAnswerDTO>('columns-questions', options)
+      ).columns;
+    }
+
+    this.logger.verbose(JSON.stringify(iteration, null, 2));
 
     // ********************************************************************
 
     const createIterationRequestDTO: CreateIterationRequestDTO = {
-      UUID: iterationCommandOptions.UUID,
-      metadata: new IterationMetadataCommandOptionsDTO(
-        iterationCommandOptions.metadata.ID,
-        iterationCommandOptions.metadata.name,
-        iterationCommandOptions.metadata.status,
-        iterationCommandOptions.metadata.priority,
-        iterationCommandOptions.metadata.risk,
-        iterationCommandOptions.metadata.tags,
-        iterationCommandOptions.metadata.dates,
+      ID: iteration.ID,
+      UUID: iteration.UUID,
+      metadata: new IterationMetadataDTO(
+        iteration.metadata.name,
+        iteration.metadata.status,
+        iteration.metadata.priority,
+        iteration.metadata.risk,
+        iteration.metadata.tags,
+        iteration.metadata.dates,
+        iteration.metadata.iterationType,
       ),
-      content: new IterationContentCommandOptionsDTO(
-        iterationCommandOptions.content.description,
-        iterationCommandOptions.content.goal,
-        // iterationCommandOptions.content.tasks,
-        iterationCommandOptions.content.columns,
+      content: new IterationContentDTO(
+        iteration.content.description,
+        iteration.content.goal,
+        iteration.content.tasks,
+        iteration.content.columns,
       ),
     };
 
-    console.log(createIterationRequestDTO);
-    this.iterationService.createIteration(createIterationRequestDTO);
+    try {
+      this.logger.verbose(JSON.stringify(createIterationRequestDTO, null, 2));
+      await this.iterationService.createIteration(createIterationRequestDTO);
+    } catch (error: any) {
+      this.logger.error(error.message);
+      this.logger.debug(error.stack);
+    }
+  }
+
+  @Option({
+    flags: '-i, --id [id]',
+    description: 'The id of the iteration',
+    // defaultValue: 'PPP-0000',
+  })
+  parseId(val: string): string {
+    const res = validateIterationId(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   // @Option({
@@ -124,17 +278,15 @@ export class CreateIterationCommand extends CommandRunner {
   //   // defaultValue: '00000000-0000-0000-0000-000000000000',
   // })
   // parseUUID(val: string): string {
-  //   return val;
+  //   const res = validateUuid(val);
+  //   if (res === true) {
+  //     return val;
+  //   }
+  //   throw new Error(res + ': ' + val + '\n');
   // }
 
-  @Option({
-    flags: '-i, --id [id]',
-    description: 'The id of the iteration',
-    // defaultValue: 'PPP-0000',
-  })
-  parseId(val: string): string {
-    return val;
-  }
+  // ********************************************************************
+  // Update Metadata
 
   @Option({
     flags: '-n, --name [name]',
@@ -142,10 +294,106 @@ export class CreateIterationCommand extends CommandRunner {
     // defaultValue: 'default-iteration-name',
   })
   parseName(val: string): string {
+    const res = validateIterationName(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
+  }
+
+  @Option({
+    flags: '-t, --status [status]',
+    description: 'The status of the iteration',
+    // defaultValue: 'default-iteration-status',
+    choices: TASK_STATUS_TYPE_ARRAY,
+  })
+  parseStatus(val: string): string {
+    const res = validateProjectStatus(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
+  }
+
+  @Option({
+    flags: '-p, --priority [priority]',
+    description: 'The priority of the iteration',
+    // defaultValue: 'default-iteration-priority',
+    choices: TASK_PRIORITY_TYPE_ARRAY,
+  })
+  parsePriority(val: string): string {
+    const res = validateTaskPriority(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
+  }
+
+  @Option({
+    flags: '-r, --risk [risk]',
+    description: 'The risk of the iteration',
+    // defaultValue: 'default-iteration-risk',
+    choices: TASK_RISK_TYPE_ARRAY,
+  })
+  parseRisk(val: string): string {
+    const res = validateTaskRisk(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
+  }
+
+  @Option({
+    flags: '-g, --tags [tags...]',
+    description: 'The tags of the iteration',
+    // defaultValue: 'default-iteration-tags',
+  })
+  parseTags(val: string[]): string[] {
     return val;
   }
 
+  @Option({
+    flags: '-y, --iterationType [iterationType]',
+    description: 'The type of the iteration',
+    // defaultValue: 'default-iteration-type',
+  })
+  parseIterationType(val: string): string {
+    const res = validateIterationType(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
+  }
+
+  // @Option({
+  //   flags: '-t, --storyPointsTotal [storyPointsTotal]',
+  //   description: 'The total story points of the iteration',
+  //   // defaultValue: 'default-iteration-story-points-total',
+  // })
+  // parseStoryPointsTotal(val: string): string {
+  //   return val;
+  // }
+
+  // @Option({
+  //   flags: '-c, --storyPointsCompleted [storyPointsCompleted]',
+  //   description: 'The completed story points of the iteration',
+  //   // defaultValue: 'default-iteration-story-points-completed',
+  // })
+  // parseStoryPointsCompleted(val: string): string {
+  //   return val;
+  // }
+
+  // @Option({
+  //   flags: '-r, --storyPointsRemaining [storyPointsRemaining]',
+  //   description: 'The remaining story points of the iteration',
+  //   // defaultValue: 'default-iteration-story-points-remaining',
+  // })
+  // parseStoryPointsRemaining(val: string): string {
+  //   return val;
+  // }
+
   // ********************************************************************
+  // Update Dates
 
   @Option({
     flags: '-c, --createdBy [createdBy]',
@@ -153,16 +401,24 @@ export class CreateIterationCommand extends CommandRunner {
     // defaultValue: 'default-created-by',
   })
   parseCreatedBy(val: string): string {
-    return val;
+    const res = validateUserId(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   @Option({
-    flags: '-d, --createdDate [createdDate]',
+    flags: '-d, --createdAt [createdAt]',
     description: 'The date when the iteration was created',
     // defaultValue: 'default-created-date',
   })
-  parseCreatedDate(val: string): string {
-    return val;
+  parseCreatedAt(val: string): string {
+    const res = validateCreatedAt(val);
+    if (res === true) {
+      return new Date(val).toISOString();
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   @Option({
@@ -171,16 +427,24 @@ export class CreateIterationCommand extends CommandRunner {
     // defaultValue: 'default-updated-by',
   })
   parseUpdatedBy(val: string): string {
-    return val;
+    const res = validateUserId(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   @Option({
-    flags: '-e, --updatedDate [updatedDate]',
+    flags: '-e, --updatedAt [updatedAt]',
     description: 'The date when the iteration was last updated',
     // defaultValue: 'default-updated-date',
   })
-  parseUpdatedDate(val: string): string {
-    return val;
+  parseUpdatedAt(val: string): string {
+    const res = validateUpdatedAt(val);
+    if (res === true) {
+      return new Date(val).toISOString();
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   @Option({
@@ -189,16 +453,24 @@ export class CreateIterationCommand extends CommandRunner {
     // defaultValue: 'default-started-by',
   })
   parseStartedBy(val: string): string {
-    return val;
+    const res = validateUserId(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   @Option({
-    flags: '-t, --startedDate [startedDate]',
+    flags: '-t, --startedAt [startedAt]',
     description: 'The date when the iteration was started',
     // defaultValue: 'default-started-date',
   })
-  parseStartedDate(val: string): string {
-    return val;
+  parseStartedAt(val: string): string {
+    const res = validateStartedAt(val);
+    if (res === true) {
+      return new Date(val).toISOString();
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   @Option({
@@ -207,7 +479,11 @@ export class CreateIterationCommand extends CommandRunner {
     // defaultValue: 'default-start-date',
   })
   parseStartDate(val: string): string {
-    return val;
+    const res = validateStartDate(val);
+    if (res === true) {
+      return new Date(val).toISOString();
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   @Option({
@@ -216,7 +492,11 @@ export class CreateIterationCommand extends CommandRunner {
     // defaultValue: 'default-end-date',
   })
   parseEndDate(val: string): string {
-    return val;
+    const res = validateEndDate(val);
+    if (res === true) {
+      return new Date(val).toISOString();
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   @Option({
@@ -225,16 +505,77 @@ export class CreateIterationCommand extends CommandRunner {
     // defaultValue: 'default-completed-by',
   })
   parseCompletedBy(val: string): string {
+    const res = validateUserId(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
+  }
+
+  @Option({
+    flags: '-p, --completedAt [completedAt]',
+    description: 'The date when the iteration was completed',
+    // defaultValue: 'default-completed-date',
+  })
+  parseCompletedAt(val: string): string {
+    const res = validateCompletedAt(val);
+    if (res === true) {
+      return new Date(val).toISOString();
+    }
+    throw new Error(res + ': ' + val + '\n');
+  }
+
+  // ********************************************************************
+  // Update Content
+
+  @Option({
+    flags: '-d, --description [description]',
+    description: 'The description of the iteration',
+    // defaultValue: 'default-iteration-description',
+  })
+  parseDescription(val: string): string {
     return val;
   }
 
   @Option({
-    flags: '-p, --completedDate [completedDate]',
-    description: 'The date when the iteration was completed',
-    // defaultValue: 'default-completed-date',
+    flags: '-g, --goal [goal]',
+    description: 'The goal of the iteration',
+    // defaultValue: 'default-iteration-goal',
   })
-  parseCompletedDate(val: string): string {
+  parseGoal(val: string): string {
     return val;
+  }
+
+  @Option({
+    flags: '-t, --tasks [tasks...]',
+    description: 'The tasks of the iteration',
+    // defaultValue: 'default-iteration-tasks',
+  })
+  parseTasks(val: string): IdUuidStatusDTO[] {
+    const items: IdUuidStatusDTO[] = convertStringToIdUuidStatusArray(val);
+    this.logger.debug(JSON.stringify(items, null, 2));
+    if (!isValidIdUuidStatusArray(items)) {
+      throw new Error(
+        CreateIterationCommand.name +
+          ': Invalid user ID, UUID, Status in the list: ' +
+          val,
+      );
+    }
+    return items;
+  }
+
+  @Option({
+    flags: '-c, --columns [columns...]',
+    description: 'The columns of the iteration',
+    defaultValue: DEFAULT_SCRUM_COLUMN,
+    choices: SCRUM_COLUMNS,
+  })
+  parseColumns(val: string): string[] {
+    const items: string[] = convertStringToArray(val);
+    // if (!isValidUuids(items)) {
+    //   throw new Error(parseColumns.name + ': Invalid user ID, UUID, Status in the list: ' + val);
+    // }
+    return items;
   }
 
   // ********************************************************************
@@ -243,4 +584,5 @@ export class CreateIterationCommand extends CommandRunner {
 // npm run build
 // nestjs build
 // node ./dist/cmd.main iteration create --help
-// node ./dist/cmd.main iteration create
+// node ./dist/cmd.main iteration create --id "PPP:2024/12/12-2024/12/12" --name "PPP:2024/12/12-2024/12/12 Iteration" --status "PLANNED" --priority "P3" --risk "LOW" --tags "tag1" "tag2" --iterationType "KANBAN" --createdBy "john.doe" --createdAt "2023-08-15T12:00:00Z" --updatedBy "john.doe" --updatedAt "2023-08-20T15:30:00Z" --startedBy "john.doe" --startedAt "2023-08-20T15:30:00Z" --startDate "2023-08-20T15:30:00Z" --endDate "2023-08-20T15:30:00Z" --completedBy "john.doe" --completedAt "2023-08-20T15:30:00Z" --description "This is a description" --goal "This is a goal" --tasks "00000000-0000-0000-0000-000000000001, 00000000-0000-0000-0000-000000000002" --columns "To Do, In Progress, Done"
+// node ./dist/cmd.main iteration create --id "PPP:2024/12/12-2024/12/12" --name "PPP:2024/12/12-2024/12/12 Iteration" --status "PLANNED" --priority "P3" --risk "LOW" --tags "tag1" "tag2" --iterationType "KANBAN" --createdBy "john.doe" --createdAt "2023-08-15T12:00:00Z" --updatedBy "john.doe" --updatedAt "2023-08-20T15:30:00Z" --startedBy "john.doe" --startedAt "2023-08-20T15:30:00Z" --startDate "2023-08-20T15:30:00Z" --endDate "2023-08-20T15:30:00Z" --completedBy "john.doe" --completedAt "2023-08-20T15:30:00Z" --description "This is a description" --goal "This is a goal" --tasks "PPP-0001/00000000-0000-0000-0000-000000000001/TODO, PPP-0002/00000000-0000-0000-0000-000000000002/IN_PROGRESS" --columns "n/a"

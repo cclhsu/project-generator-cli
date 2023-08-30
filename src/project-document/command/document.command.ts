@@ -1,6 +1,6 @@
 import { Command, CommandRunner, InquirerService } from 'nest-commander';
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from 'src/config/config.service';
+import { ConfigService } from '../../config/config.service';
 import { DocumentService } from '../document.service';
 import { GetDocumentVariablesTemplateCommand } from './get-document-variables-template.command';
 import { GenerateDocumentCommand } from './generate-document.command';

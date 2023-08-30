@@ -6,14 +6,45 @@ import {
 } from 'nest-commander';
 import { Injectable, Logger } from '@nestjs/common';
 import { ProjectService } from '../project.service';
-import { CreateProjectRequestDTO } from '../dto/create-project-request.dto';
-import { ProjectCommandOptionsDTO } from './dto/project-command-options.dto';
-import { ProjectMetadataCommandOptionsDTO } from './dto/project-metadata-command-options.dto';
-import { ProjectContentCommandOptionsDTO } from './dto/project-content-command-options.dto';
-import { UuidAnswerDTO } from '../../common/command/dto/uuid-answer.dto';
-import { IdAnswerDTO } from '../../common/command/dto/id-answer.dto';
-import { NameAnswerDTO } from '../../common/command/dto/name-answer.dto';
-import { getCommonDateCommandOptionsDTO } from '../../common/command/utils/common-date-command.utils';
+import { CreateProjectRequestDTO } from '../dto';
+import { getCommonDateDTO } from '../../../common/command/utils/common-date-command.utils';
+import { validate } from 'class-validator';
+import { ProjectDTO, ProjectContentDTO, ProjectMetadataDTO } from '../dto';
+import {
+  DescriptionAnswerDTO,
+  IdAnswerDTO,
+  IterationsAnswerDTO,
+  ProjectNameAnswerDTO,
+  ProjectIdAnswerDTO,
+  ProjectStatusAnswerDTO,
+  ProjectTeamIdUuidAnswerDTO,
+  TasksAnswerDTO,
+  IterationsIdUuidStatusAnswerDTO,
+  TasksIdUuidStatusAnswerDTO,
+} from '../../../common/command/dto';
+import {
+  validateCompletedAt,
+  validateCreatedAt,
+  validateEndDate,
+  validateProjectId,
+  validateProjectStatus,
+  validateStartDate,
+  validateStartedAt,
+  validateUuid,
+  validateUpdatedAt,
+  validateUserId,
+  isValidUuid,
+  validateProjectName,
+  validateIdUuid,
+  convertStringToIdUuidDTO,
+} from '../../../common/command/validation';
+import {
+  convertStringToArray,
+  convertStringToIdUuidStatusArray,
+  isValidIdUuidStatusArray,
+} from '../../../utils/array';
+import { isValidUuids } from '../../../common/command/validation';
+import { IdUuidDTO, IdUuidStatusDTO } from '../../../common/dto';
 
 @Injectable()
 @SubCommand({
@@ -34,80 +65,154 @@ export class CreateProjectCommand extends CommandRunner {
     options?: Record<string, any> | undefined,
   ): Promise<void> {
     this.logger.debug('>>> Creating project');
-    // this.logger.debug(passedParams);
-    // this.logger.debug(options);
+    // this.logger.verbose('passedParam: ' + JSON.stringify(passedParams, null, 2));
+    // this.logger.verbose('options: ' + JSON.stringify(options, null, 2));
 
-    const projectMetadataCommandOptions: ProjectMetadataCommandOptionsDTO = {
-      ID: options?.id ?? '',
+    const projectMetadata: ProjectMetadataDTO = {
       name: options?.name ?? '',
       status: 'PLANNED',
       dates: options?.dates ?? undefined,
     };
-    const projectContentCommandOptions: ProjectContentCommandOptionsDTO = {
+    const projectContent: ProjectContentDTO = {
       description: options?.description ?? '',
-      sprints: options?.sprints ?? [],
-      backlog: options?.backlog ?? [],
       iterations: options?.iterations ?? [],
-      team: options?.team ?? '',
+      backlog: options?.backlog ?? [],
+      team: options?.team ? options?.team : undefined,
     };
-    const projectCommandOptions: ProjectCommandOptionsDTO = {
+    const project: ProjectDTO = {
+      ID: options?.id ?? '',
       UUID: options?.uuid ?? '00000000-0000-0000-0000-000000000000',
-      metadata: projectMetadataCommandOptions,
-      content: projectContentCommandOptions,
+      metadata: projectMetadata,
+      content: projectContent,
       // ...options,
     };
 
-    // while (!projectCommandOptions.UUID) {
-    //   projectCommandOptions.UUID = (
+    // ********************************************************************
+
+    while (!project.ID) {
+      project.ID = (
+        await this.inquirer.ask<ProjectIdAnswerDTO>(
+          'project-id-questions',
+          options,
+        )
+      ).ID;
+    }
+
+    // while (!project.UUID) {
+    //   project.UUID = (
     //     await this.inquirer.ask<UuidAnswerDTO>('uuid-questions', options)
     //   ).UUID;
     // }
 
-    while (!projectCommandOptions.metadata.ID) {
-      projectCommandOptions.metadata.ID = (
-        await this.inquirer.ask<IdAnswerDTO>('id-questions', options)
-      ).ID;
+    // ********************************************************************
+    // Update Metadata
+
+    while (!project.metadata.name) {
+      project.metadata.name = (
+        await this.inquirer.ask<ProjectNameAnswerDTO>(
+          'project-name-questions',
+          options,
+        )
+      ).projectName;
     }
 
-    while (!projectCommandOptions.metadata.name) {
-      projectCommandOptions.metadata.name = (
-        await this.inquirer.ask<NameAnswerDTO>('name-questions', options)
-      ).name;
+    while (!project.metadata.status) {
+      project.metadata.status = (
+        await this.inquirer.ask<ProjectStatusAnswerDTO>(
+          'project-status-questions',
+          options,
+        )
+      ).projectStatus;
     }
 
     // ********************************************************************
+    // Update Dates
 
-    projectCommandOptions.metadata.dates = await getCommonDateCommandOptionsDTO(
+    project.metadata.dates = await getCommonDateDTO(
       // this.configService,
       this.inquirer,
       options,
     );
 
     // ********************************************************************
+    // Update Content
 
-    console.log(projectCommandOptions);
+    while (!project.content.description) {
+      project.content.description = (
+        await this.inquirer.ask<DescriptionAnswerDTO>(
+          'description-questions',
+          options,
+        )
+      ).description;
+    }
+
+    if (!project.content.iterations) {
+      project.content.iterations = (
+        await this.inquirer.ask<IterationsIdUuidStatusAnswerDTO>(
+          'iteration-id-uuid-status-questions',
+          options,
+        )
+      ).iterations;
+    }
+
+    if (!project.content.backlog) {
+      project.content.backlog = (
+        await this.inquirer.ask<TasksIdUuidStatusAnswerDTO>(
+          'tasks-id-uuid-status-questions',
+          options,
+        )
+      ).tasks;
+    }
+
+    // if (!project.content.team) {
+    //   project.content.team = (
+    //     await this.inquirer.ask<ProjectTeamIdUuidAnswerDTO>(
+    //       'project-team-id-uuid-questions',
+    //       options,
+    //     )
+    //   ).projectTeam;
+    // }
+
+    this.logger.verbose(JSON.stringify(project, null, 2));
 
     // ********************************************************************
 
     const createProjectRequestDTO: CreateProjectRequestDTO = {
-      UUID: projectCommandOptions.UUID,
-      metadata: new ProjectMetadataCommandOptionsDTO(
-        projectCommandOptions.metadata.ID,
-        projectCommandOptions.metadata.name,
-        projectCommandOptions.metadata.status,
-        projectCommandOptions.metadata.dates,
+      ID: project.ID,
+      UUID: project.UUID,
+      metadata: new ProjectMetadataDTO(
+        project.metadata.name,
+        project.metadata.status,
+        project.metadata.dates,
       ),
-      content: new ProjectContentCommandOptionsDTO(
-        projectCommandOptions.content.description,
-        projectCommandOptions.content.sprints,
-        projectCommandOptions.content.backlog,
-        projectCommandOptions.content.iterations,
-        projectCommandOptions.content.team,
+      content: new ProjectContentDTO(
+        project.content.description,
+        project.content.iterations,
+        project.content.backlog,
+        project.content.team,
       ),
     };
 
-    console.log(createProjectRequestDTO);
-    this.projectService.createProject(createProjectRequestDTO);
+    try {
+      this.logger.verbose(JSON.stringify(createProjectRequestDTO, null, 2));
+      await this.projectService.createProject(createProjectRequestDTO);
+    } catch (error: any) {
+      this.logger.error(error.message);
+      this.logger.debug(error.stack);
+    }
+  }
+
+  @Option({
+    flags: '-i, --id [id]',
+    description: 'The id of the project',
+    // defaultValue: 'PPP-0000',
+  })
+  parseId(val: string): string {
+    const res = validateProjectId(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   // @Option({
@@ -116,17 +221,15 @@ export class CreateProjectCommand extends CommandRunner {
   //   // defaultValue: '00000000-0000-0000-0000-000000000000',
   // })
   // parseUUID(val: string): string {
-  //   return val;
+  //   const res = validateUuid(val);
+  //   if (res === true) {
+  //     return val;
+  //   }
+  //   throw new Error(res + ': ' + val + '\n');
   // }
 
-  @Option({
-    flags: '-i, --id [id]',
-    description: 'The id of the project',
-    // defaultValue: 'PPP-0000',
-  })
-  parseId(val: string): string {
-    return val;
-  }
+  // ********************************************************************
+  // Update Metadata
 
   @Option({
     flags: '-n, --name [name]',
@@ -134,10 +237,28 @@ export class CreateProjectCommand extends CommandRunner {
     // defaultValue: 'default-project-name',
   })
   parseName(val: string): string {
-    return val;
+    const res = validateProjectName(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
+  }
+
+  @Option({
+    flags: '-s, --status [status]',
+    description: 'The status of the project',
+    // defaultValue: 'PLANNED',
+  })
+  parseStatus(val: string): string {
+    const res = validateProjectStatus(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   // ********************************************************************
+  // Update Dates
 
   @Option({
     flags: '-c, --createdBy [createdBy]',
@@ -145,16 +266,24 @@ export class CreateProjectCommand extends CommandRunner {
     // defaultValue: 'default-created-by',
   })
   parseCreatedBy(val: string): string {
-    return val;
+    const res = validateUserId(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   @Option({
-    flags: '-d, --createdDate [createdDate]',
+    flags: '-d, --createdAt [createdAt]',
     description: 'The date when the project was created',
     // defaultValue: 'default-created-date',
   })
-  parseCreatedDate(val: string): string {
-    return val;
+  parseCreatedAt(val: string): string {
+    const res = validateCreatedAt(val);
+    if (res === true) {
+      return new Date(val).toISOString();
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   @Option({
@@ -163,16 +292,24 @@ export class CreateProjectCommand extends CommandRunner {
     // defaultValue: 'default-updated-by',
   })
   parseUpdatedBy(val: string): string {
-    return val;
+    const res = validateUserId(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   @Option({
-    flags: '-e, --updatedDate [updatedDate]',
+    flags: '-e, --updatedAt [updatedAt]',
     description: 'The date when the project was last updated',
     // defaultValue: 'default-updated-date',
   })
-  parseUpdatedDate(val: string): string {
-    return val;
+  parseUpdatedAt(val: string): string {
+    const res = validateUpdatedAt(val);
+    if (res === true) {
+      return new Date(val).toISOString();
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   @Option({
@@ -181,16 +318,24 @@ export class CreateProjectCommand extends CommandRunner {
     // defaultValue: 'default-started-by',
   })
   parseStartedBy(val: string): string {
-    return val;
+    const res = validateUserId(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   @Option({
-    flags: '-t, --startedDate [startedDate]',
+    flags: '-t, --startedAt [startedAt]',
     description: 'The date when the project was started',
     // defaultValue: 'default-started-date',
   })
-  parseStartedDate(val: string): string {
-    return val;
+  parseStartedAt(val: string): string {
+    const res = validateStartedAt(val);
+    if (res === true) {
+      return new Date(val).toISOString();
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   @Option({
@@ -199,7 +344,11 @@ export class CreateProjectCommand extends CommandRunner {
     // defaultValue: 'default-start-date',
   })
   parseStartDate(val: string): string {
-    return val;
+    const res = validateStartDate(val);
+    if (res === true) {
+      return new Date(val).toISOString();
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   @Option({
@@ -208,7 +357,11 @@ export class CreateProjectCommand extends CommandRunner {
     // defaultValue: 'default-end-date',
   })
   parseEndDate(val: string): string {
-    return val;
+    const res = validateEndDate(val);
+    if (res === true) {
+      return new Date(val).toISOString();
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   @Option({
@@ -217,22 +370,92 @@ export class CreateProjectCommand extends CommandRunner {
     // defaultValue: 'default-completed-by',
   })
   parseCompletedBy(val: string): string {
+    const res = validateUserId(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
+  }
+
+  @Option({
+    flags: '-p, --completedAt [completedAt]',
+    description: 'The date when the project was completed',
+    // defaultValue: 'default-completed-date',
+  })
+  parseCompletedAt(val: string): string {
+    const res = validateCompletedAt(val);
+    if (res === true) {
+      return new Date(val).toISOString();
+    }
+    throw new Error(res + ': ' + val + '\n');
+  }
+
+  // ********************************************************************
+  // Update Content
+
+  @Option({
+    flags: '-d, --description [description]',
+    description: 'The description of the project',
+    // defaultValue: 'default-project-description',
+  })
+  parseDescription(val: string): string {
     return val;
   }
 
   @Option({
-    flags: '-p, --completedDate [completedDate]',
-    description: 'The date when the project was completed',
-    // defaultValue: 'default-completed-date',
+    flags: '-t, --iterations [iterations]',
+    description: 'The iterations of the project',
+    // defaultValue: 'default-project-iterations',
   })
-  parseCompletedDate(val: string): string {
-    return val;
+  parseIterations(val: string): IdUuidStatusDTO[] {
+    const items: IdUuidStatusDTO[] = convertStringToIdUuidStatusArray(val);
+    if (!isValidIdUuidStatusArray(items)) {
+      throw new Error(
+        CreateProjectCommand.name +
+          ': Invalid user ID, UUID, Status in the list: ' +
+          val,
+      );
+    }
+    return items;
   }
 
-  // ********************************************************************
+  @Option({
+    flags: '-l, --backlog [backlog]',
+    description: 'The backlog of the project',
+    // defaultValue: 'default-project-backlog',
+  })
+  parseBacklog(val: string): IdUuidStatusDTO[] {
+    const items: IdUuidStatusDTO[] = convertStringToIdUuidStatusArray(val);
+    if (!isValidIdUuidStatusArray(items)) {
+      throw new Error(
+        CreateProjectCommand.name +
+          ': Invalid user ID, UUID, Status in the list: ' +
+          val,
+      );
+    }
+    return items;
+  }
+
+  @Option({
+    flags: '-m, --team [team]',
+    description: 'The team of the project',
+    // defaultValue: 'default-project-team',
+  })
+  parseTeam(val: string): IdUuidDTO | string {
+    if (val.trim() === '' || val.trim().toLowerCase() === 'n/a') {
+      return '';
+    }
+    const res = validateIdUuid(val);
+    if (res === true) {
+      return convertStringToIdUuidDTO(val);
+    }
+    throw new Error(res + ': ' + val + '\n');
+  }
 }
 
 // npm run build
 // nestjs build
 // node ./dist/cmd.main project create --help
 // node ./dist/cmd.main project create
+// node ./dist/cmd.main project create --id XYZ --name 'XYZ Project' --status PLANNED --createdBy 'john.doe' --createdAt '2021-08-15T12:00:00Z' --updatedBy 'john.doe' --updatedAt '2021-08-15T12:00:00Z' --startedBy 'john.doe' --description 'Project Description' --iterations 'n/a' --backlog 'n/a' --team 'n/a'
+// node ./dist/cmd.main project create --id XYZ --name 'XYZ Project' --status PLANNED --createdBy 'john.doe' --createdAt '2021-08-15T12:00:00Z' --updatedBy 'john.doe' --updatedAt '2021-08-15T12:00:00Z' --startedBy 'john.doe' --description 'Project Description' --iterations '[{"ID": "PPP:2024/12/12-2024/12/12","UUID": "00000000-0000-0000-0000-000000000001", "status": "PLANNED"}]' --backlog 'n/a' --team '{"ID": "abc.team","UUID": "00000000-0000-0000-0000-000000000001"}'

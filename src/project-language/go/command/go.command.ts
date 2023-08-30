@@ -5,14 +5,14 @@ import {
   Option,
 } from 'nest-commander';
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from 'src/config/config.service';
-import { GoService } from 'src/project-language/go/go.service';
+import { ConfigService } from '../../../config/config.service';
+import { GoService } from '../../../project-language/go/go.service';
 import { InitGoCommand } from './init-go.command';
 import { BuildGoCommand } from './build-go.command';
 import { RunGoCommand } from './run-go.command';
 import { TestGoCommand } from './test-go.command';
 import { CleanGoCommand } from './clean-go.command';
-// import { GoService } from 'src/go/go.service';
+// import { GoService } from '../../go/go.service';
 
 @Injectable()
 @Command({

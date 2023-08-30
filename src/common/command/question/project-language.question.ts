@@ -1,4 +1,10 @@
 import { Question, QuestionSet } from 'nest-commander';
+import {
+  DEFAULT_PROJECT_LANGUAGE,
+  PROJECT_LANGUAGE_TYPES,
+  PROJECT_LANGUAGE_TYPE_ARRAY,
+} from '../../constant';
+import { validateProjectLanguage } from '../validation';
 
 @QuestionSet({ name: 'project-language-questions' })
 export class ProjectLanguageQuestions {
@@ -6,10 +12,14 @@ export class ProjectLanguageQuestions {
     message: 'Enter project-language:',
     name: 'projectLanguage',
     type: 'list',
-    default: 'typescript',
-    choices: ['go', 'python3', 'rust', 'typescript'],
+    default: DEFAULT_PROJECT_LANGUAGE,
+    choices: PROJECT_LANGUAGE_TYPE_ARRAY,
   })
-  parseProjectLanguage(val: string): string {
-    return val;
+  parseProjectLanguage(val: string): PROJECT_LANGUAGE_TYPES {
+    const res = validateProjectLanguage(val);
+    if (res === true) {
+      return val as PROJECT_LANGUAGE_TYPES;
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 }

@@ -1,46 +1,73 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
+  IsBoolean,
   IsDateString,
   IsEmail,
+  IsEnum,
+  IsIn,
+  IsNotEmpty,
+  IsNumberString,
   IsObject,
+  IsOptional,
   IsString,
+  IsUUID,
+  Length,
+  Matches,
+  MaxLength,
   MinLength,
-  isObject,
+  ValidateNested,
 } from 'class-validator';
-import { Expose } from 'class-transformer';
-import { CommonDateDTO } from '../../common/dto/common-date.dto';
-import { PROJECT_STATUS_TYPES } from '../../common/constant/project-status.constant';
+import { Expose, Type } from 'class-transformer';
+import {
+  DEFAULT_PROJECT_STATUS,
+  PROJECT_STATUS_TYPE_ARRAY,
+  PROJECT_STATUS_TYPES,
+} from '../../../common/constant';
+import { CommonDateDTO } from '../../../common/dto/common-date.dto';
 
 export class ProjectMetadataDTO {
   constructor(
-    ID: string,
     name: string,
     status: PROJECT_STATUS_TYPES,
     dates: CommonDateDTO,
   ) {
-    this.ID = ID;
     this.name = name;
     this.status = status;
     this.dates = dates;
   }
 
-  @ApiProperty()
-  @Expose({ name: 'ID', toPlainOnly: true })
-  @IsString()
-  ID: string; // Unique identifier for the Scrum Project
-
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Name of the Project Metadata.',
+    example: 'John Doe',
+  })
   @Expose({ name: 'name', toPlainOnly: true })
-  @IsString()
-  name: string; // Name of the Scrum Project
+  @IsString({ message: 'Name must be a string' })
+  name: string;
 
-  @ApiProperty()
-  @Expose({ name: 'status', toPlainOnly: true })
+  @ApiProperty({
+    description:
+      'The status of the project (PLANNED, IN_PROGRESS, or COMPLETED).',
+    enum: PROJECT_STATUS_TYPE_ARRAY,
+    example: DEFAULT_PROJECT_STATUS,
+    nullable: false,
+    type: 'string',
+  })
   @IsString()
-  status: PROJECT_STATUS_TYPES; // Current status of the Scrum Project
+  @IsIn(PROJECT_STATUS_TYPE_ARRAY, {
+    message: `Invalid project status. Possible values: ${PROJECT_STATUS_TYPE_ARRAY.join(
+      ', ',
+    )}`,
+  })
+  status: PROJECT_STATUS_TYPES;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Dates related to the Project Metadata.',
+    type: CommonDateDTO,
+  })
   @Expose({ name: 'dates', toPlainOnly: true })
-  @IsObject()
+  @ValidateNested({ each: true })
   dates: CommonDateDTO;
 }

@@ -1,7 +1,7 @@
 import { InquirerService } from 'nest-commander';
-import { ConfigService } from 'src/config/config.service';
-import { DocumentCommandOptionsDTO } from 'src/project-document/command/dto/document-command-options.dto';
-import { TemplateRootAnswerDTO } from 'src/common/command/dto/template-root-answer.dto';
+import { ConfigService } from '../../config/config.service';
+import { DocumentCommandOptionsDTO } from '../../project-document/command/dto/document-command-options.dto';
+import { TemplateRootAnswerDTO } from '../../common/command/dto/template-root-answer.dto';
 import { DocumentVariablesFilePathAnswerDTO } from './dto/document-variables-file-path-answer.dto';
 import { DocumentVariablesFileNameAnswerDTO } from './dto/document-variables-file-name-answer.dto';
 import { DocumentTypeAnswerDTO } from './dto/document-type-answer.dto';

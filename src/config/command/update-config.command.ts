@@ -6,19 +6,21 @@ import {
 } from 'nest-commander';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '../config.service';
-import { GitProviderAnswerDTO } from 'src/common/command/dto/git-provider-answer.dto';
-import { ProjectCommonCommandOptionsDTO } from 'src/common/command/dto/project-common-command-options.dto';
-import { ProjectTeamAnswerDTO } from 'src/common/command/dto/project-team-answer.dto';
-import { ProjectUserAnswerDTO } from 'src/common/command/dto/project-user-answer.dto';
-import { SrcRootAnswerDTO } from 'src/common/command/dto/src-root-answer.dto';
-import { TemplateRootAnswerDTO } from 'src/common/command/dto/template-root-answer.dto';
-import { ConfigPathAnswerDTO } from 'src/common/command/dto/config-path-answer.dto';
-import { ConfirmUpdateAnswerDTO } from 'src/common/command/dto/confirm-update-answer.dto';
-import { getProjectName } from 'src/utils/project-name/project-name.utils';
+import { GitProviderAnswerDTO } from '../../common/command/dto/git-provider-answer.dto';
+import { ProjectCommonCommandOptionsDTO } from '../../common/command/dto/project-common-command-options.dto';
+import { ProjectTeamAnswerDTO } from '../../common/command/dto/project-team-answer.dto';
+import { ProjectUserAnswerDTO } from '../../common/command/dto/project-user-answer.dto';
+import { SrcRootAnswerDTO } from '../../common/command/dto/src-root-answer.dto';
+import { TemplateRootAnswerDTO } from '../../common/command/dto/template-root-answer.dto';
+import { ConfigPathAnswerDTO } from '../../common/command/dto/config-path-answer.dto';
+import { ConfirmUpdateAnswerDTO } from '../../common/command/dto/confirm-update-answer.dto';
+import { getProjectName } from '../../utils/project-name/project-name.utils';
 import {
   DEFAULT_GIT_PROVIDER,
-  GIT_PROVIDER_TYPES,
-} from 'src/common/constant/git.constant';
+  GIT_PROVIDER_TYPE_ARRAY,
+  PROJECT_LANGUAGE_TYPE_ARRAY,
+  PROJECT_TEMPLATE_TYPE_ARRAY,
+} from '../../common/constant';
 
 @Injectable()
 @SubCommand({
@@ -124,13 +126,8 @@ export class UpdateConfigCommand extends CommandRunner {
       ).projectUser;
     }
 
-    this.displayResults(
-      projectCommonCommandOptionsDTO.configPath ?? 'N/A',
-      projectCommonCommandOptionsDTO.templateRoot ?? 'N/A',
-      projectCommonCommandOptionsDTO.srcRoot ?? 'N/A',
-      projectCommonCommandOptionsDTO.gitProvider ?? 'N/A',
-      projectCommonCommandOptionsDTO.projectTeam ?? 'N/A',
-      projectCommonCommandOptionsDTO.projectUser ?? 'N/A',
+    this.logger.verbose(
+      `config: ${JSON.stringify(projectCommonCommandOptionsDTO, null, 2)}`,
     );
 
     const confirmUpdateAnswerDTO: ConfirmUpdateAnswerDTO =
@@ -144,26 +141,14 @@ export class UpdateConfigCommand extends CommandRunner {
       return;
     }
 
-    this.configService.updateConfig(
-      packageProjectName,
-      projectCommonCommandOptionsDTO,
-    );
-  }
-
-  displayResults(
-    configPath: string,
-    templateRoot: string,
-    srcRoot: string,
-    gitProvider: string,
-    projectTeam: string,
-    projectUser: string,
-  ): void {
-    console.log(`configPath: ${configPath}`);
-    console.log(`templateRoot: ${templateRoot}`);
-    console.log(`srcRoot: ${srcRoot}`);
-    console.log(`gitProvider: ${gitProvider}`);
-    console.log(`projectTeam: ${projectTeam}`);
-    console.log(`projectUser: ${projectUser}`);
+    try {
+      await this.configService.updateConfig(
+        packageProjectName,
+        projectCommonCommandOptionsDTO,
+      );
+    } catch (error: any) {
+      console.log(error.message);
+    }
   }
 
   @Option({
@@ -197,7 +182,7 @@ export class UpdateConfigCommand extends CommandRunner {
     flags: '-g, --git-provider [gitProvider]',
     // defaultValue: DEFAULT_GIT_PROVIDER,
     description: 'Your git provider',
-    choices: GIT_PROVIDER_TYPES,
+    choices: GIT_PROVIDER_TYPE_ARRAY,
   })
   parseGitProvider(val: string): string {
     return val;
@@ -224,4 +209,4 @@ export class UpdateConfigCommand extends CommandRunner {
 // npm run build
 // nestjs build
 // node ./dist/cmd.main config update --help
-// node ./dist/cmd.main config update --uuid 00000000-0000-0000-0000-000000000001 --username john.doe --email john.doe@mail.com --phone 0912345678
+// node ./dist/cmd.main config update --uuid 00000000-0000-0000-0000-000000000001 --username john.doe --email john.doe@mail.com --phone 0912-345-678

@@ -1,12 +1,15 @@
 import { Command, CommandRunner, InquirerService } from 'nest-commander';
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from 'src/config/config.service';
+import { ConfigService } from '../../../config/config.service';
 import { UserService } from '../user.service';
-import { ListUsersCommand } from './list-users.command';
-import { GetUserCommand } from './get-user.command';
 import { CreateUserCommand } from './create-user.command';
-import { UpdateUserCommand } from './update-user.command';
 import { DeleteUserCommand } from './delete-user.command';
+import { GetUserCommand } from './get-user.command';
+import { ListUserIdsAndUUIDsCommand } from './list-user-ids-uuids.command';
+import { ListUsersCommand } from './list-users.command';
+import { UpdateUserContentCommand } from './update-user-content.command';
+import { UpdateUserMetadataCommand } from './update-user-metadata.command';
+import { UpdateUserCommand } from './update-user.command';
 
 @Injectable()
 @Command({
@@ -19,6 +22,9 @@ import { DeleteUserCommand } from './delete-user.command';
     CreateUserCommand,
     UpdateUserCommand,
     DeleteUserCommand,
+    UpdateUserMetadataCommand,
+    UpdateUserContentCommand,
+    ListUserIdsAndUUIDsCommand,
   ],
 })
 export class UserCommand extends CommandRunner {

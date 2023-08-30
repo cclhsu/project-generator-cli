@@ -2,18 +2,14 @@ import { Injectable, Logger } from '@nestjs/common';
 import * as path from 'path';
 import * as fs from 'fs-extra';
 import {
-  DEFAULT_PROJECT_SUITE_NAME,
-  PROJECT_TEMPLATE_TYPES,
-} from 'src/common/constant/project.constant';
-import {
   createDocumentationDirectory,
   getOrCreateProjectDirectory,
   getProjectDirectoryPath,
   getDocumentDirectoryPath,
-} from 'src/utils/directory/directory.utils';
-import { createGitRepository, gitCommit } from 'src/utils/git/git.utils';
-import { createTypescriptGitignoreFile } from 'src/utils/git/gitignore.utils';
-import { ProjectSuiteCommandOptionsDTO } from 'src/project-suite/command/dto/project-suite-command-options.dto';
+} from '../utils/directory/directory.utils';
+import { createGitRepository, gitCommit } from '../utils/git/git.utils';
+import { createTypescriptGitignoreFile } from '../utils/git/gitignore.utils';
+import { ProjectSuiteCommandOptionsDTO } from '../project-suite/command/dto/project-suite-command-options.dto';
 import {
   createCmdShFileFromTemplate,
   createFilesFromTemplate,
@@ -21,20 +17,21 @@ import {
   createMakefileFromTemplate,
   createReadmeFileFromTemplate,
   getTemplateRootPath,
-} from 'src/utils/template/template.utils';
-import { DEFAULT_VARIABLE_FILE_PATH } from 'src/common/constant/common.constant';
+} from '../utils/template/template.utils';
 import {
+  DEFAULT_VARIABLE_FILE_PATH,
   DEFAULT_DOCUMENT_FILE_PATH,
   PROJECT_NOTE_FILES,
-} from 'src/common/constant/document.constant';
-import { DEFAULT_GIT_PROVIDER } from 'src/common/constant/git.constant';
-import { resolveHomePath } from 'src/utils/path/path.utils';
-import { getProjectRootPath } from 'src/utils/project-name/project-name.utils';
-import {
+  DEFAULT_GIT_PROVIDER,
+  PROJECT_LANGUAGE_TYPE_ARRAY,
+  DEFAULT_PROJECT_SUITE_NAME,
+  PROJECT_TEMPLATE_TYPE_ARRAY,
   DEFAULT_NOTE_TEMPLATE_FILE_PATH,
   DEFAULT_PROJECT_SUITE_VARIABLE_TEMPLATE_FILE_PATH,
-} from 'src/common/constant/template.constant';
-import { addLeadingZeros } from 'src/utils/string/string.utils';
+} from '../common/constant';
+import { resolveHomePath } from '../utils/path/path.utils';
+import { getProjectRootPath } from '../utils/project-name/project-name.utils';
+import { addLeadingZeros } from '../utils/string/string.utils';
 
 @Injectable()
 export class ProjectSuiteService {
@@ -208,7 +205,7 @@ export class ProjectSuiteService {
 
     gitCommit(
       projectDocumentDirPath,
-      '[PPP-XXXX] Add documentation directories for ' +
+      '[PPP-XXXX] chore: Add documentation directories for ' +
         projectName +
         '/' +
         projectType,
@@ -284,7 +281,7 @@ export class ProjectSuiteService {
 
     gitCommit(
       projectDocumentDirPath,
-      '[PPP-XXXX] Add Notes for project directories for' +
+      '[PPP-XXXX] chore: Add Notes for project directories for' +
         projectName +
         '/' +
         projectType,
@@ -297,8 +294,8 @@ export class ProjectSuiteService {
     this.logger.debug('>>> generating project-suite');
 
     try {
-      for (let i = 0; i < PROJECT_TEMPLATE_TYPES.length; i++) {
-        const projectType = PROJECT_TEMPLATE_TYPES[i];
+      for (let i = 0; i < PROJECT_TEMPLATE_TYPE_ARRAY.length; i++) {
+        const projectType = PROJECT_TEMPLATE_TYPE_ARRAY[i];
         const incrementedProjectTypeKey = i + 1;
         this.logger.debug(`projectType: ${projectType}`);
         this.logger.debug(
@@ -316,8 +313,8 @@ export class ProjectSuiteService {
         );
       }
 
-      for (let i = 0; i < PROJECT_TEMPLATE_TYPES.length; i++) {
-        const projectType = PROJECT_TEMPLATE_TYPES[i];
+      for (let i = 0; i < PROJECT_TEMPLATE_TYPE_ARRAY.length; i++) {
+        const projectType = PROJECT_TEMPLATE_TYPE_ARRAY[i];
         const incrementedProjectTypeKey = i + 1;
         this.logger.debug(`projectType: ${projectType}`);
         this.logger.debug(
@@ -336,8 +333,8 @@ export class ProjectSuiteService {
         );
       }
 
-      for (let i = 0; i < PROJECT_TEMPLATE_TYPES.length; i++) {
-        const projectType = PROJECT_TEMPLATE_TYPES[i];
+      for (let i = 0; i < PROJECT_TEMPLATE_TYPE_ARRAY.length; i++) {
+        const projectType = PROJECT_TEMPLATE_TYPE_ARRAY[i];
         const incrementedProjectTypeKey = i + 1;
         this.logger.debug(`projectType: ${projectType}`);
         this.logger.debug(

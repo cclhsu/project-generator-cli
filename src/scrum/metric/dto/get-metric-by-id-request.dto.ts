@@ -1,33 +1,38 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString } from 'class-validator';
-import { Expose } from 'class-transformer';
-// import { Transform, Type } from 'class-transformer';
-// import { MetricMetadataDTO } from './metric-metadata.dto';
-// import { MetricContentDTO } from './metric-content.dto';
+import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
+  IsBoolean,
+  IsDateString,
+  IsEmail,
+  IsEnum,
+  IsIn,
+  IsNotEmpty,
+  IsNumberString,
+  IsObject,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Length,
+  Matches,
+  MaxLength,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
+import { Expose, Type } from 'class-transformer';
 
 export class GetMetricByIdRequestDTO {
-  constructor(
-    UUID: string,
-    // metadata: MetricMetadataDTO,
-    // content: MetricContentDTO,
-  ) {
-    this.UUID = UUID;
-    // this.metadata = metadata;
-    // this.content = content;
+  constructor(ID: string) {
+    this.ID = ID;
   }
 
-  @ApiProperty()
-  @Expose({ name: 'UUID', toPlainOnly: true })
-  @IsString()
-  UUID: string;
-
-  // @ApiProperty()
-  // @Expose({ name: 'metadata', toPlainOnly: true })
-  // @IsObject()
-  // metadata: MetricMetadataDTO;
-
-  // @ApiProperty()
-  // @Expose({ name: 'content', toPlainOnly: true })
-  // @IsObject()
-  // content: MetricContentDTO;
+  @ApiProperty({
+    description: 'ID is Unique identifier for ' + GetMetricByIdRequestDTO.name,
+    example: '00000000-0000-0000-0000-000000000000',
+  })
+  @Expose({ name: 'ID', toPlainOnly: true })
+  @IsString({ message: 'ID must be a string.' })
+  @IsUUID('all', { message: 'Invalid ID format.' })
+  ID: string;
 }

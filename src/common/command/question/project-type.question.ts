@@ -1,4 +1,8 @@
 import { Question, QuestionSet } from 'nest-commander';
+import {
+  DEFAULT_PROJECT_TEMPLATE_TYPE,
+  PROJECT_TEMPLATE_TYPE_ARRAY,
+} from '../../../common/constant';
 
 @QuestionSet({ name: 'project-type-questions' })
 export class ProjectTypeQuestions {
@@ -6,17 +10,8 @@ export class ProjectTypeQuestions {
     message: 'Enter project-type:',
     name: 'projectType',
     type: 'list',
-    default: 'algorithm',
-    choices: [
-      'service',
-      'cli',
-      'vscode-extension',
-      'web-app',
-      'browser-extension',
-      'mobile-app',
-      'desktop-app',
-      'algorithm',
-    ],
+    default: DEFAULT_PROJECT_TEMPLATE_TYPE,
+    choices: PROJECT_TEMPLATE_TYPE_ARRAY,
   })
   parseProjectType(val: string): string {
     return val;

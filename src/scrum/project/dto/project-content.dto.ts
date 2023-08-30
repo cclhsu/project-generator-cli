@@ -1,57 +1,77 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  ArrayMaxSize,
+  ArrayMinSize,
   IsArray,
+  IsBoolean,
   IsDateString,
   IsEmail,
+  IsEnum,
+  IsIn,
+  IsNotEmpty,
+  IsNumberString,
   IsObject,
+  IsOptional,
   IsString,
+  IsUUID,
+  Length,
+  Matches,
+  MaxLength,
   MinLength,
-  isObject,
+  ValidateNested,
 } from 'class-validator';
-import { Expose } from 'class-transformer';
+import { Expose, Type } from 'class-transformer';
 import { IterationDTO } from '../../iteration/dto/iteration.dto';
 import { TaskDTO } from '../../task/dto/task.dto';
 import { TeamDTO } from '../../team/dto/team.dto';
+import { IdUuidStatusDTO } from '../../../common/dto';
 
 export class ProjectContentDTO {
   constructor(
     description: string,
-    sprints: IterationDTO[],
-    backlog: TaskDTO[],
-    iterations: { [ID: string]: IterationDTO },
-    team: TeamDTO,
+    iterations: IdUuidStatusDTO[],
+    backlog: IdUuidStatusDTO[],
+    team?: IdUuidStatusDTO,
   ) {
     this.description = description;
-    this.sprints = sprints;
-    this.backlog = backlog;
     this.iterations = iterations;
+    this.backlog = backlog;
     this.team = team;
   }
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Description of the project content.',
+    example: 'Develop new feature set.',
+  })
   @Expose({ name: 'description', toPlainOnly: true })
-  @IsString()
-  description: string; // Description of the Scrum Project
+  @IsString({ message: 'Description must be a string' })
+  description: string;
 
-  @ApiProperty()
-  @Expose({ name: 'sprints', toPlainOnly: true })
-  @IsArray()
-  sprints: IterationDTO[]; // Array of Sprints associated with the Scrum Project
-
-  @ApiProperty()
-  @Expose({ name: 'backlog', toPlainOnly: true })
-  @IsArray()
-  backlog: TaskDTO[]; // List of tasks in the project backlog
-
-  @ApiProperty()
+  @ApiProperty({
+    description: 'An array of iteration DTOs.',
+    type: () => IdUuidStatusDTO,
+    isArray: true,
+  })
   @Expose({ name: 'iterations', toPlainOnly: true })
-  @IsObject()
-  iterations: {
-    [ID: string]: IterationDTO; // Mapping of iid to ISprintBoard for different iterations in the project
-  };
+  @IsArray({ message: 'Iterations must be an array' })
+  @ValidateNested({ each: true })
+  iterations: IdUuidStatusDTO[];
+
+  @ApiProperty({
+    description: 'An array of task DTOs.',
+    type: () => IdUuidStatusDTO,
+    isArray: true,
+  })
+  @Expose({ name: 'backlog', toPlainOnly: true })
+  @IsArray({ message: 'Backlog must be an array' })
+  @ValidateNested({ each: true })
+  backlog: IdUuidStatusDTO[];
 
   @ApiProperty()
   @Expose({ name: 'team', toPlainOnly: true })
-  @IsObject()
-  team: TeamDTO; // Scrum Project Team associated with the Scrum Project
+  @IsOptional()
+  @IsObject({ message: 'Team must be an object' })
+  @Type(() => TeamDTO)
+  @ValidateNested({ each: true })
+  team?: IdUuidStatusDTO | undefined;
 }

@@ -1,33 +1,38 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString } from 'class-validator';
-import { Expose } from 'class-transformer';
-// import { Transform, Type } from 'class-transformer';
-// import { ProjectMetadataDTO } from './project-metadata.dto';
-// import { ProjectContentDTO } from './project-content.dto';
+import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
+  IsBoolean,
+  IsDateString,
+  IsEmail,
+  IsEnum,
+  IsIn,
+  IsNotEmpty,
+  IsNumberString,
+  IsObject,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Length,
+  Matches,
+  MaxLength,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
+import { Expose, Type } from 'class-transformer';
 
 export class GetProjectByIdRequestDTO {
-  constructor(
-    UUID: string,
-    // metadata: ProjectMetadataDTO,
-    // content: ProjectContentDTO,
-  ) {
-    this.UUID = UUID;
-    // this.metadata = metadata;
-    // this.content = content;
+  constructor(ID: string) {
+    this.ID = ID;
   }
 
-  @ApiProperty()
-  @Expose({ name: 'UUID', toPlainOnly: true })
-  @IsString()
-  UUID: string;
-
-  // @ApiProperty()
-  // @Expose({ name: 'metadata', toPlainOnly: true })
-  // @IsObject()
-  // metadata: ProjectMetadataDTO;
-
-  // @ApiProperty()
-  // @Expose({ name: 'content', toPlainOnly: true })
-  // @IsObject()
-  // content: ProjectContentDTO;
+  @ApiProperty({
+    description: 'ID is Unique identifier for ' + GetProjectByIdRequestDTO.name,
+    example: '00000000-0000-0000-0000-000000000000',
+  })
+  @Expose({ name: 'ID', toPlainOnly: true })
+  @IsString({ message: 'ID must be a string.' })
+  @IsUUID('all', { message: 'Invalid ID format.' })
+  ID: string;
 }

@@ -1,4 +1,5 @@
 import { Question, QuestionSet } from 'nest-commander';
+import { validateTeamId } from '../validation';
 
 @QuestionSet({ name: 'project-team-questions' })
 export class ProjectTeamQuestions {
@@ -6,6 +7,7 @@ export class ProjectTeamQuestions {
     message: 'Enter project-team:',
     name: 'projectTeam',
     type: 'input',
+    validate: validateTeamId,
   })
   parseProjectTeam(val: string): string {
     return val;

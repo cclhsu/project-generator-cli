@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-// import {} from './config.utils';
+// import {} from './git.utils';
 
 @Module({
   providers: [],
   exports: [],
 })
-export class ConfigModule {}
+export class GitModule {}

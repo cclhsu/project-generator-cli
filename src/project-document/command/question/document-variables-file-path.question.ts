@@ -1,5 +1,5 @@
 import { Question, QuestionSet } from 'nest-commander';
-import { DEFAULT_VARIABLE_FILE_PATH } from 'src/common/constant/common.constant';
+import { DEFAULT_VARIABLE_FILE_PATH } from '../../../common/constant';
 
 @QuestionSet({ name: 'document-variables-path-name-questions' })
 export class DocumentVariablesFilePathQuestions {

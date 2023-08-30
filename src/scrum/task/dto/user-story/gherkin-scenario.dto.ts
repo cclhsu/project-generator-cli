@@ -1,14 +1,26 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  ArrayMaxSize,
+  ArrayMinSize,
   IsArray,
+  IsBoolean,
   IsDateString,
   IsEmail,
+  IsEnum,
+  IsIn,
+  IsNotEmpty,
+  IsNumberString,
   IsObject,
+  IsOptional,
   IsString,
+  IsUUID,
+  Length,
+  Matches,
+  MaxLength,
   MinLength,
-  isObject,
+  ValidateNested,
 } from 'class-validator';
-import { Expose } from 'class-transformer';
+import { Expose, Type } from 'class-transformer';
 import { GherkinStepDTO, StepType } from './gherkin-step.dto';
 
 // GherkinScenario DTO
@@ -24,10 +36,44 @@ export class GherkinScenarioDTO {
     this.tags = tags;
     this.examples = examples;
   }
+
+  @ApiProperty({
+    description: 'Name of the Gherkin scenario.',
+    example: 'Successful login',
+  })
+  @Expose({ name: 'name', toPlainOnly: true })
+  @IsString({ message: 'Name must be a string' })
   name: string;
+
+  @ApiProperty({
+    description: 'Steps of the Gherkin scenario.',
+    type: [GherkinStepDTO],
+  })
+  @Expose({ name: 'steps', toPlainOnly: true })
+  @ValidateNested({ each: true })
+  @Type(() => GherkinStepDTO)
   steps: GherkinStepDTO[];
-  tags?: string[]; // Scenario tags
-  examples?: GherkinStepDTO[][]; // Scenario outline examples
+
+  @ApiProperty({
+    description: 'Tags for the Gherkin scenario.',
+    example: ['@smoke', '@login'],
+  })
+  @Expose({ name: 'tags', toPlainOnly: true })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  tags?: string[];
+
+  @ApiProperty({
+    description: 'Examples for the Gherkin scenario outline.',
+    type: [[GherkinStepDTO]],
+  })
+  @Expose({ name: 'examples', toPlainOnly: true })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => GherkinStepDTO)
+  examples?: GherkinStepDTO[][];
 }
 
 // Example usage:

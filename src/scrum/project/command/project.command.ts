@@ -1,12 +1,15 @@
 import { Command, CommandRunner, InquirerService } from 'nest-commander';
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from 'src/config/config.service';
+import { ConfigService } from '../../../config/config.service';
 import { ProjectService } from '../project.service';
 import { ListProjectsCommand } from './list-projects.command';
 import { GetProjectCommand } from './get-project.command';
 import { CreateProjectCommand } from './create-project.command';
 import { UpdateProjectCommand } from './update-project.command';
 import { DeleteProjectCommand } from './delete-project.command';
+import { UpdateProjectMetadataCommand } from './update-project-metadata.command';
+import { UpdateProjectContentCommand } from './update-project-content.command';
+import { ListProjectIdsAndUUIDsCommand } from './list-project-ids-uuids.command';
 
 @Injectable()
 @Command({
@@ -19,6 +22,9 @@ import { DeleteProjectCommand } from './delete-project.command';
     CreateProjectCommand,
     UpdateProjectCommand,
     DeleteProjectCommand,
+    UpdateProjectMetadataCommand,
+    UpdateProjectContentCommand,
+    ListProjectIdsAndUUIDsCommand,
   ],
 })
 export class ProjectCommand extends CommandRunner {

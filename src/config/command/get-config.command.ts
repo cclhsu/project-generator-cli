@@ -6,8 +6,8 @@ import {
 } from 'nest-commander';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '../config.service';
-import { ProjectCommonCommandOptionsDTO } from 'src/common/command/dto/project-common-command-options.dto';
-import { getProjectName } from 'src/utils/project-name/project-name.utils';
+import { ProjectCommonCommandOptionsDTO } from '../../common/command/dto/project-common-command-options.dto';
+import { getProjectName } from '../../utils/project-name/project-name.utils';
 
 @Injectable()
 @SubCommand({
@@ -43,33 +43,13 @@ export class GetConfigCommand extends CommandRunner {
     //   ...options,
     // };
 
-    const config: ProjectCommonCommandOptionsDTO =
-      await this.configService.getConfig(packageProjectName);
-
-    this.displayResults(
-      config.configPath ?? 'N/A',
-      config.templateRoot ?? 'N/A',
-      config.srcRoot ?? 'N/A',
-      config.gitProvider ?? 'N/A',
-      config.projectTeam ?? 'N/A',
-      config.projectUser ?? 'N/A',
-    );
-  }
-
-  displayResults(
-    configPath: string,
-    templateRoot: string,
-    srcRoot: string,
-    gitProvider: string,
-    projectTeam: string,
-    projectUser: string,
-  ): void {
-    console.log(`configPath: ${configPath}`);
-    console.log(`templateRoot: ${templateRoot}`);
-    console.log(`srcRoot: ${srcRoot}`);
-    console.log(`gitProvider: ${gitProvider}`);
-    console.log(`projectTeam: ${projectTeam}`);
-    console.log(`projectUser: ${projectUser}`);
+    try {
+      const config: ProjectCommonCommandOptionsDTO =
+        await this.configService.getConfig(packageProjectName);
+      this.logger.verbose(`config: ${JSON.stringify(config, null, 2)}`);
+    } catch (error: any) {
+      console.log(error.message);
+    }
   }
 }
 

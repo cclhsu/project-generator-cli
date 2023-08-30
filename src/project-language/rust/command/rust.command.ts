@@ -5,14 +5,14 @@ import {
   Option,
 } from 'nest-commander';
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from 'src/config/config.service';
-import { RustService } from 'src/project-language/rust/rust.service';
+import { ConfigService } from '../../../config/config.service';
+import { RustService } from '../../../project-language/rust/rust.service';
 import { InitRustCommand } from './init-rust.command';
 import { BuildRustCommand } from './build-rust.command';
 import { RunRustCommand } from './run-rust.command';
 import { TestRustCommand } from './test-rust.command';
 import { CleanRustCommand } from './clean-rust.command';
-// import { RustService } from 'src/rust/rust.service';
+// import { RustService } from '../../rust/rust.service';
 
 @Injectable()
 @Command({

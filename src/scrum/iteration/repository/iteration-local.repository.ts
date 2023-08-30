@@ -1,12 +1,12 @@
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { v4 as uuidV4 } from 'uuid';
-import { CreateIterationRequestDTO } from '../dto/create-iteration-request.dto';
-import { UpdateIterationRequestDTO } from '../dto/update-iteration-request.dto';
+import { CreateIterationRequestDTO, IterationIdUuidStatusDTO } from '../dto';
+import { UpdateIterationRequestDTO } from '../dto';
 import { IterationEntity } from '../entity/iteration.entity';
 import { instanceToPlain, plainToInstance } from 'class-transformer';
 import { IterationMetadataEntity } from '../entity/iteration-metadata.entity';
 import { IterationContentEntity } from '../entity/iteration-content.entity';
-import { CommonDateEntity } from 'src/scrum/common/entity/common-date.entity';
+import { CommonDateEntity } from '../../../common/entity/common-date.entity';
 import { existsSync, mkdirSync, readFileSync } from 'fs';
 import {
   DEFAULT_DATABASE_STORAGE_DEVICE_TYPE,
@@ -17,10 +17,15 @@ import {
   DEFAULT_ITERATION_FILE_PATH,
   DEFAULT_ITERATION_PATH,
   STORAGE_DEVICE_TYPES,
-} from 'src/scrum/common/constant/repository.constant';
+} from '../../../common/constant';
 import { glob } from 'glob';
-import { createDirectory } from 'src/utils/directory/directory.utils';
-import { deleteFile } from 'src/utils/file/file.utils';
+import { createDirectory } from '../../../utils/directory/directory.utils';
+import { deleteFile } from '../../../utils/file/file.utils';
+import {
+  IterationMetadataDTO,
+  IterationContentDTO,
+  IterationIdUuidDTO,
+} from '../dto';
 
 @Injectable()
 export class IterationLocalRepository {
@@ -57,13 +62,21 @@ export class IterationLocalRepository {
     @Inject('ReadArrayFromCSV')
     private readonly readArrayFromCSV: <T>(filePath: string) => Promise<T[]>,
     @Inject('WriteArrayToCSV')
-    private readonly writeArrayToCSV: <T>(filePath: string, data: T[]) => void,
-  ) // @Inject('ReadArrayFromMarkdown')
-  // private readonly readArrayFromMarkdown: <T>(filePath: string) => Promise<T[]>,
-  // @Inject('WriteArrayToMarkdown')
-  // private readonly writeArrayToMarkdown: <T>(filePath: string, data: T[]) => void,
-  {
+    private readonly writeArrayToCSV: <T>(filePath: string, data: T[]) => void, // @Inject('ReadArrayFromMarkdown') // private readonly readArrayFromMarkdown: <T>(filePath: string) => Promise<T[]>, // @Inject('WriteArrayToMarkdown') // private readonly writeArrayToMarkdown: <T>(filePath: string, data: T[]) => void,
+  ) {
     this.storageStrategy = this.getStorageStrategy();
+  }
+
+  // Get all iteration IDs, UUIDs, and statuses
+  async listIterationIdsUUIDsStatuses(): Promise<IterationIdUuidStatusDTO[]> {
+    const storage: StorageStrategy = this.getStorageStrategy();
+    return storage.listIterationIdsUUIDsStatuses();
+  }
+
+  // Get all iteration IDs and UUIDs
+  async listIterationIdsAndUUIDs(): Promise<IterationIdUuidDTO[]> {
+    const storage: StorageStrategy = this.getStorageStrategy();
+    return storage.listIterationIdsAndUUIDs();
   }
 
   // Get all iterations
@@ -72,7 +85,7 @@ export class IterationLocalRepository {
     return storage.listIterations();
   }
 
-  // Get a iteration by ID
+  // Get a iteration by UUID
   async getIteration(UUID: string): Promise<IterationEntity> {
     const storage: StorageStrategy = this.getStorageStrategy();
     return storage.getIteration(UUID);
@@ -86,7 +99,7 @@ export class IterationLocalRepository {
     return storage.createIteration(createIterationRequestDTO);
   }
 
-  // Update a iteration by ID
+  // Update a iteration by UUID
   async updateIteration(
     UUID: string,
     updateIterationRequestDTO: UpdateIterationRequestDTO,
@@ -95,16 +108,52 @@ export class IterationLocalRepository {
     return storage.updateIteration(UUID, updateIterationRequestDTO);
   }
 
-  // Delete a iteration by ID
+  // Delete a iteration by UUID
   async deleteIteration(UUID: string): Promise<IterationEntity> {
     const storage: StorageStrategy = this.getStorageStrategy();
     return storage.deleteIteration(UUID);
+  }
+
+  // Get a iteration by ID
+  async getIterationByID(ID: string): Promise<IterationEntity> {
+    const storage: StorageStrategy = this.getStorageStrategy();
+    return storage.getIterationByID(ID);
   }
 
   // Get a iteration by name
   async getIterationByName(name: string): Promise<IterationEntity> {
     const storage: StorageStrategy = this.getStorageStrategy();
     return storage.getIterationByName(name);
+  }
+
+  // Update a iteration metadata by UUID
+  async updateIterationMetadata(
+    UUID: string,
+    updatedMetadata: IterationMetadataDTO,
+  ): Promise<IterationMetadataDTO> {
+    const storage: StorageStrategy = this.getStorageStrategy();
+    return storage.updateIterationMetadata(UUID, updatedMetadata);
+  }
+
+  // Update a iteration content by UUID
+  async updateIterationContent(
+    UUID: string,
+    updatedContent: IterationContentDTO,
+  ): Promise<IterationContentDTO> {
+    const storage: StorageStrategy = this.getStorageStrategy();
+    return storage.updateIterationContent(UUID, updatedContent);
+  }
+
+  // Get a iteration metadata by UUID
+  async getIterationMetadata(UUID: string): Promise<IterationMetadataDTO> {
+    const storage: StorageStrategy = this.getStorageStrategy();
+    return storage.getIterationMetadata(UUID);
+  }
+
+  // Get a iteration content by UUID
+  async getIterationContent(UUID: string): Promise<IterationContentDTO> {
+    const storage: StorageStrategy = this.getStorageStrategy();
+    return storage.getIterationContent(UUID);
   }
 
   private getStorageStrategy(): StorageStrategy {
@@ -224,6 +273,8 @@ export class IterationLocalRepository {
 }
 
 interface StorageStrategy {
+  listIterationIdsUUIDsStatuses(): Promise<IterationIdUuidStatusDTO[]>;
+  listIterationIdsAndUUIDs(): Promise<IterationIdUuidDTO[]>;
   listIterations(): Promise<IterationEntity[]>;
   getIteration(UUID: string): Promise<IterationEntity>;
   createIteration(
@@ -234,16 +285,28 @@ interface StorageStrategy {
     updateIterationRequestDTO: UpdateIterationRequestDTO,
   ): Promise<IterationEntity>;
   deleteIteration(UUID: string): Promise<IterationEntity>;
+  getIterationByID(ID: string): Promise<IterationEntity>;
   getIterationByName(name: string): Promise<IterationEntity>;
+  updateIterationMetadata(
+    uuid: string,
+    updatedMetadata: IterationMetadataDTO,
+  ): Promise<IterationMetadataDTO>;
+  updateIterationContent(
+    uuid: string,
+    updatedContent: IterationContentDTO,
+  ): Promise<IterationContentDTO>;
+  getIterationMetadata(uuid: string): Promise<IterationMetadataDTO>;
+  getIterationContent(uuid: string): Promise<IterationContentDTO>;
+  // searchIterations(query: string): Promise<IterationEntity[]>;
 }
 
 class MemoryStorage implements StorageStrategy {
   private readonly logger = new Logger(MemoryStorage.name);
   private iterations: IterationEntity[] = [
     // new IterationEntity(
+    //    ABC-123',
     //   '00000000-0000-0000-0000-000000000001',
     //   new IterationMetadataEntity(
-    //     'ABC-123',
     //     'Iteration 1',
     //     new CommonDateEntity(
     //       new Date('2021-01-01T00:00:00.000Z'),
@@ -265,9 +328,9 @@ class MemoryStorage implements StorageStrategy {
     //   ),
     // ),
     // new IterationEntity(
+    //   'XYZ-789',
     //   '00000000-0000-0000-0000-000000000002',
     //   new IterationMetadataEntity(
-    //     'XYZ-789',
     //     'Iteration 2',
     //     new CommonDateEntity(
     //       new Date('2021-01-01T00:00:00.000Z'),
@@ -289,6 +352,21 @@ class MemoryStorage implements StorageStrategy {
     //   ),
     // ),
   ];
+
+  async listIterationIdsUUIDsStatuses(): Promise<IterationIdUuidStatusDTO[]> {
+    return this.iterations.map((iteration) => ({
+      ID: iteration.ID,
+      UUID: iteration.UUID,
+      status: iteration.metadata.status,
+    }));
+  }
+
+  async listIterationIdsAndUUIDs(): Promise<IterationIdUuidDTO[]> {
+    return this.iterations.map((iteration) => ({
+      ID: iteration.ID,
+      UUID: iteration.UUID,
+    }));
+  }
 
   async listIterations(): Promise<IterationEntity[]> {
     return this.iterations;
@@ -317,6 +395,7 @@ class MemoryStorage implements StorageStrategy {
       createIterationRequestDTO.content,
     );
     const newIteration: IterationEntity = new IterationEntity(
+      createIterationRequestDTO.ID,
       newUUID,
       newIterationMetadata,
       newIterationContent,
@@ -344,6 +423,7 @@ class MemoryStorage implements StorageStrategy {
       ...updateIterationRequestDTO.content,
     };
     const updatedIteration = new IterationEntity(
+      this.iterations[iterationIndex].ID,
       UUID,
       updatedIterationMetadata,
       updatedIterationContent,
@@ -366,6 +446,16 @@ class MemoryStorage implements StorageStrategy {
     return deletedIteration;
   }
 
+  async getIterationByID(ID: string): Promise<IterationEntity> {
+    const iteration: IterationEntity | undefined = this.iterations.find(
+      (iteration) => iteration.ID === ID,
+    );
+    if (!iteration) {
+      throw new NotFoundException(`Iteration ${ID} cannot be found`);
+    }
+    return iteration;
+  }
+
   async getIterationByName(name: string): Promise<IterationEntity> {
     const iteration: IterationEntity | undefined = this.iterations.find(
       (iteration) => iteration.metadata.name === name,
@@ -374,6 +464,87 @@ class MemoryStorage implements StorageStrategy {
       throw new NotFoundException(`Iteration ${name} cannot be found`);
     }
     return iteration;
+  }
+
+  // Update a iteration metadata by UUID
+  async updateIterationMetadata(
+    uuid: string,
+    updatedMetadata: IterationMetadataDTO,
+  ): Promise<IterationMetadataDTO> {
+    this.logger.log(
+      `Iteration UUID: ${uuid} | Iteration Metadata: ${updatedMetadata}`,
+    );
+    const iterationIndex = this.iterations.findIndex(
+      (iteration) => iteration.UUID === uuid,
+    );
+    if (iterationIndex === -1) {
+      throw new NotFoundException(`Iteration ${uuid} cannot be found`);
+    }
+    const updatedIterationMetadata: IterationMetadataEntity = {
+      ...this.iterations[iterationIndex].metadata,
+      ...instanceToPlain(updatedMetadata),
+    };
+    const updatedIteration = new IterationEntity(
+      this.iterations[iterationIndex].ID,
+      uuid,
+      updatedIterationMetadata,
+      this.iterations[iterationIndex].content,
+    );
+    this.iterations[iterationIndex] = updatedIteration;
+    return updatedIteration.metadata;
+  }
+
+  // Update a iteration content by UUID
+  async updateIterationContent(
+    uuid: string,
+    updatedContent: IterationContentDTO,
+  ): Promise<IterationContentDTO> {
+    this.logger.log(
+      `Iteration UUID: ${uuid} | Iteration Content: ${updatedContent}`,
+    );
+    const iterationIndex = this.iterations.findIndex(
+      (iteration) => iteration.UUID === uuid,
+    );
+    if (iterationIndex === -1) {
+      throw new NotFoundException(`Iteration ${uuid} cannot be found`);
+    }
+    const updatedIterationContent: IterationContentEntity = {
+      ...this.iterations[iterationIndex].content,
+      ...updatedContent,
+    };
+    this.iterations[iterationIndex].metadata.dates.updatedAt = new Date();
+    const updatedIteration = new IterationEntity(
+      this.iterations[iterationIndex].ID,
+      uuid,
+      this.iterations[iterationIndex].metadata,
+      updatedIterationContent,
+    );
+    this.iterations[iterationIndex] = updatedIteration;
+    return updatedIteration.content;
+  }
+
+  // Get a iteration metadata by UUID
+  async getIterationMetadata(uuid: string): Promise<IterationMetadataDTO> {
+    this.logger.log(`Iteration UUID: ${uuid}`);
+    const iterationIndex = this.iterations.findIndex(
+      (iteration) => iteration.UUID === uuid,
+    );
+    if (iterationIndex === -1) {
+      throw new NotFoundException(`Iteration ${uuid} cannot be found`);
+    }
+    return this.iterations[iterationIndex].metadata;
+  }
+
+  // Get a iteration content by UUID
+  async getIterationContent(uuid: string): Promise<IterationContentDTO> {
+    this.logger.log(`Iteration UUID: ${uuid}`);
+    const iterationIndex = this.iterations.findIndex(
+      (iteration) => iteration.UUID === uuid,
+    );
+    if (iterationIndex === -1) {
+      throw new NotFoundException(`Iteration ${uuid} cannot be found`);
+    }
+    return this.iterations[iterationIndex].content;
   }
 }
 
@@ -384,6 +555,25 @@ class SingleJsonStorage implements StorageStrategy {
     private readonly readFromJSON: <T>(filePath: string) => Promise<T[]>,
     private readonly writeToJSON: <T>(filePath: string, data: T[]) => void,
   ) {}
+
+  async listIterationIdsUUIDsStatuses(): Promise<IterationIdUuidStatusDTO[]> {
+    const iterations: IterationEntity[] =
+      await this.readFromJSON<IterationEntity>(this.filePath);
+    return iterations.map((iteration) => ({
+      ID: iteration.ID,
+      UUID: iteration.UUID,
+      status: iteration.metadata.status,
+    }));
+  }
+
+  async listIterationIdsAndUUIDs(): Promise<IterationIdUuidDTO[]> {
+    const iterations: IterationEntity[] =
+      await this.readFromJSON<IterationEntity>(this.filePath);
+    return iterations.map((iteration) => ({
+      ID: iteration.ID,
+      UUID: iteration.UUID,
+    }));
+  }
 
   async listIterations(): Promise<IterationEntity[]> {
     return this.readFromJSON<IterationEntity>(this.filePath);
@@ -416,6 +606,7 @@ class SingleJsonStorage implements StorageStrategy {
       createIterationRequestDTO.content,
     );
     const newIteration: IterationEntity = new IterationEntity(
+      createIterationRequestDTO.ID,
       newUUID,
       newIterationMetadata,
       newIterationContent,
@@ -446,6 +637,7 @@ class SingleJsonStorage implements StorageStrategy {
       ...updateIterationRequestDTO.content,
     };
     const updatedIteration = new IterationEntity(
+      iterations[iterationIndex].ID,
       UUID,
       updatedIterationMetadata,
       updatedIterationContent,
@@ -472,6 +664,18 @@ class SingleJsonStorage implements StorageStrategy {
     return deletedIteration;
   }
 
+  async getIterationByID(ID: string): Promise<IterationEntity> {
+    const iterations: IterationEntity[] =
+      await this.readFromJSON<IterationEntity>(this.filePath);
+    const iteration: IterationEntity | undefined = iterations.find(
+      (iteration) => iteration.ID === ID,
+    );
+    if (!iteration) {
+      throw new NotFoundException(`Iteration ${ID} cannot be found`);
+    }
+    return iteration;
+  }
+
   async getIterationByName(name: string): Promise<IterationEntity> {
     const iterations: IterationEntity[] =
       await this.readFromJSON<IterationEntity>(this.filePath);
@@ -483,6 +687,97 @@ class SingleJsonStorage implements StorageStrategy {
     }
     return iteration;
   }
+
+  // Update a iteration metadata by UUID
+  async updateIterationMetadata(
+    uuid: string,
+    updatedMetadata: IterationMetadataDTO,
+  ): Promise<IterationMetadataDTO> {
+    this.logger.log(
+      `Iteration UUID: ${uuid} | Iteration Metadata: ${updatedMetadata}`,
+    );
+    const iterations: IterationEntity[] =
+      await this.readFromJSON<IterationEntity>(this.filePath);
+    const iterationIndex = iterations.findIndex(
+      (iteration) => iteration.UUID === uuid,
+    );
+    if (iterationIndex === -1) {
+      throw new NotFoundException(`Iteration ${uuid} cannot be found`);
+    }
+    const updatedIterationMetadata: IterationMetadataEntity = {
+      ...iterations[iterationIndex].metadata,
+      ...instanceToPlain(updatedMetadata),
+    };
+    const updatedIteration = new IterationEntity(
+      iterations[iterationIndex].ID,
+      uuid,
+      updatedIterationMetadata,
+      iterations[iterationIndex].content,
+    );
+    iterations[iterationIndex] = updatedIteration;
+    this.writeToJSON(this.filePath, iterations);
+    return updatedIteration.metadata;
+  }
+
+  // Update a iteration content by UUID
+  async updateIterationContent(
+    uuid: string,
+    updatedContent: IterationContentDTO,
+  ): Promise<IterationContentDTO> {
+    this.logger.log(
+      `Iteration UUID: ${uuid} | Iteration Content: ${updatedContent}`,
+    );
+    const iterations: IterationEntity[] =
+      await this.readFromJSON<IterationEntity>(this.filePath);
+    const iterationIndex = iterations.findIndex(
+      (iteration) => iteration.UUID === uuid,
+    );
+    if (iterationIndex === -1) {
+      throw new NotFoundException(`Iteration ${uuid} cannot be found`);
+    }
+    const updatedIterationContent: IterationContentEntity = {
+      ...iterations[iterationIndex].content,
+      ...updatedContent,
+    };
+    iterations[iterationIndex].metadata.dates.updatedAt = new Date();
+    const updatedIteration = new IterationEntity(
+      iterations[iterationIndex].ID,
+      uuid,
+      iterations[iterationIndex].metadata,
+      updatedIterationContent,
+    );
+    iterations[iterationIndex] = updatedIteration;
+    this.writeToJSON(this.filePath, iterations);
+    return updatedIteration.content;
+  }
+
+  // Get a iteration metadata by UUID
+  async getIterationMetadata(uuid: string): Promise<IterationMetadataDTO> {
+    this.logger.log(`Iteration UUID: ${uuid}`);
+    const iterations: IterationEntity[] =
+      await this.readFromJSON<IterationEntity>(this.filePath);
+    const iterationIndex = iterations.findIndex(
+      (iteration) => iteration.UUID === uuid,
+    );
+    if (iterationIndex === -1) {
+      throw new NotFoundException(`Iteration ${uuid} cannot be found`);
+    }
+    return iterations[iterationIndex].metadata;
+  }
+
+  // Get a iteration content by UUID
+  async getIterationContent(uuid: string): Promise<IterationContentDTO> {
+    this.logger.log(`Iteration UUID: ${uuid}`);
+    const iterations: IterationEntity[] =
+      await this.readFromJSON<IterationEntity>(this.filePath);
+    const iterationIndex = iterations.findIndex(
+      (iteration) => iteration.UUID === uuid,
+    );
+    if (iterationIndex === -1) {
+      throw new NotFoundException(`Iteration ${uuid} cannot be found`);
+    }
+    return iterations[iterationIndex].content;
+  }
 }
 
 class MultipleJsonStorage implements StorageStrategy {
@@ -492,6 +787,47 @@ class MultipleJsonStorage implements StorageStrategy {
     private readonly readFromJSON: <T>(filePath: string) => Promise<T>,
     private readonly writeToJSON: <T>(filePath: string, data: T) => void,
   ) {}
+
+  async listIterationIdsUUIDsStatuses(): Promise<IterationIdUuidStatusDTO[]> {
+    const filesPath: string[] = glob.sync(
+      `${this.dirPath}/*.${DEFAULT_FILE_STORAGE_EXTENSION}`,
+    );
+    const iterations: IterationEntity[] = [];
+    for (const filePath of filesPath) {
+      if (existsSync(filePath)) {
+        const iteration: IterationEntity =
+          await this.readFromJSON<IterationEntity>(filePath);
+        if (iteration) {
+          iterations.push(iteration);
+        }
+      }
+    }
+    return iterations.map((iteration) => ({
+      ID: iteration.ID,
+      UUID: iteration.UUID,
+      status: iteration.metadata.status,
+    }));
+  }
+
+  async listIterationIdsAndUUIDs(): Promise<IterationIdUuidDTO[]> {
+    const filesPath: string[] = glob.sync(
+      `${this.dirPath}/*.${DEFAULT_FILE_STORAGE_EXTENSION}`,
+    );
+    const iterations: IterationEntity[] = [];
+    for (const filePath of filesPath) {
+      if (existsSync(filePath)) {
+        const iteration: IterationEntity =
+          await this.readFromJSON<IterationEntity>(filePath);
+        if (iteration) {
+          iterations.push(iteration);
+        }
+      }
+    }
+    return iterations.map((iteration) => ({
+      ID: iteration.ID,
+      UUID: iteration.UUID,
+    }));
+  }
 
   async listIterations(): Promise<IterationEntity[]> {
     const filesPath: string[] = glob.sync(
@@ -532,6 +868,7 @@ class MultipleJsonStorage implements StorageStrategy {
       createIterationRequestDTO.content,
     );
     const newIteration: IterationEntity = new IterationEntity(
+      createIterationRequestDTO.ID,
       newUUID,
       newIterationMetadata,
       newIterationContent,
@@ -561,6 +898,7 @@ class MultipleJsonStorage implements StorageStrategy {
         ...updateIterationRequestDTO.content,
       };
       const updatedIteration = new IterationEntity(
+        iteration.ID,
         UUID,
         updatedIterationMetadata,
         updatedIterationContent,
@@ -588,21 +926,132 @@ class MultipleJsonStorage implements StorageStrategy {
     }
   }
 
+  async getIterationByID(ID: string): Promise<IterationEntity> {
+    const filesPath: string[] = glob.sync(
+      `${this.dirPath}/*.${DEFAULT_FILE_STORAGE_EXTENSION}`,
+    );
+    for (const filePath of filesPath) {
+      if (existsSync(filePath)) {
+        const iteration: IterationEntity =
+          await this.readFromJSON<IterationEntity>(filePath);
+        if (iteration.ID === ID) {
+          return iteration;
+        }
+      }
+    }
+    throw new NotFoundException(`Iteration ${ID} cannot be found`);
+  }
+
   async getIterationByName(name: string): Promise<IterationEntity> {
     const filesPath: string[] = glob.sync(
       `${this.dirPath}/*.${DEFAULT_FILE_STORAGE_EXTENSION}`,
     );
     for (const filePath of filesPath) {
       if (existsSync(filePath)) {
-        const iterations = await this.readFromJSON<IterationEntity[]>(filePath);
-        const iteration = iterations.find(
-          (iteration) => iteration.metadata.name === name,
-        );
-        if (iteration) {
+        const iteration: IterationEntity =
+          await this.readFromJSON<IterationEntity>(filePath);
+        if (iteration.metadata.name === name) {
           return iteration;
         }
       }
     }
     throw new NotFoundException(`Iteration ${name} cannot be found`);
+  }
+
+  // Update a iteration metadata by UUID
+  async updateIterationMetadata(
+    uuid: string,
+    updatedMetadata: IterationMetadataDTO,
+  ): Promise<IterationMetadataDTO> {
+    this.logger.log(
+      `Iteration UUID: ${uuid} | Iteration Metadata: ${updatedMetadata}`,
+    );
+    const filePath = `${this.dirPath}/${uuid}.${DEFAULT_FILE_STORAGE_EXTENSION}`;
+    if (existsSync(filePath)) {
+      const iteration: IterationEntity =
+        await this.readFromJSON<IterationEntity>(filePath);
+      if (!iteration) {
+        throw new NotFoundException(`Iteration ${uuid} cannot be found`);
+      }
+      const updatedIterationMetadata: IterationMetadataEntity = {
+        ...iteration.metadata,
+        ...instanceToPlain(updatedMetadata),
+      };
+      const updatedIteration = new IterationEntity(
+        iteration.ID,
+        uuid,
+        updatedIterationMetadata,
+        iteration.content,
+      );
+      this.writeToJSON(filePath, updatedIteration);
+      return updatedIteration.metadata;
+    } else {
+      throw new NotFoundException(`Iteration ${uuid} cannot be found`);
+    }
+  }
+
+  // Update a iteration content by UUID
+  async updateIterationContent(
+    uuid: string,
+    updatedContent: IterationContentDTO,
+  ): Promise<IterationContentDTO> {
+    this.logger.log(
+      `Iteration UUID: ${uuid} | Iteration Content: ${updatedContent}`,
+    );
+    const filePath = `${this.dirPath}/${uuid}.${DEFAULT_FILE_STORAGE_EXTENSION}`;
+    if (existsSync(filePath)) {
+      const iteration: IterationEntity =
+        await this.readFromJSON<IterationEntity>(filePath);
+      if (!iteration) {
+        throw new NotFoundException(`Iteration ${uuid} cannot be found`);
+      }
+      const updatedIterationContent: IterationContentEntity = {
+        ...iteration.content,
+        ...updatedContent,
+      };
+      iteration.metadata.dates.updatedAt = new Date();
+      const updatedIteration = new IterationEntity(
+        iteration.ID,
+        uuid,
+        iteration.metadata,
+        updatedIterationContent,
+      );
+      this.writeToJSON(filePath, updatedIteration);
+      return updatedIteration.content;
+    } else {
+      throw new NotFoundException(`Iteration ${uuid} cannot be found`);
+    }
+  }
+
+  // Get a iteration metadata by UUID
+  async getIterationMetadata(uuid: string): Promise<IterationMetadataDTO> {
+    this.logger.log(`Iteration UUID: ${uuid}`);
+    const filePath = `${this.dirPath}/${uuid}.${DEFAULT_FILE_STORAGE_EXTENSION}`;
+    if (existsSync(filePath)) {
+      const iteration: IterationEntity =
+        await this.readFromJSON<IterationEntity>(filePath);
+      if (!iteration) {
+        throw new NotFoundException(`Iteration ${uuid} cannot be found`);
+      }
+      return iteration.metadata;
+    } else {
+      throw new NotFoundException(`Iteration ${uuid} cannot be found`);
+    }
+  }
+
+  // Get a iteration content by UUID
+  async getIterationContent(uuid: string): Promise<IterationContentDTO> {
+    this.logger.log(`Iteration UUID: ${uuid}`);
+    const filePath = `${this.dirPath}/${uuid}.${DEFAULT_FILE_STORAGE_EXTENSION}`;
+    if (existsSync(filePath)) {
+      const iteration: IterationEntity =
+        await this.readFromJSON<IterationEntity>(filePath);
+      if (!iteration) {
+        throw new NotFoundException(`Iteration ${uuid} cannot be found`);
+      }
+      return iteration.content;
+    } else {
+      throw new NotFoundException(`Iteration ${uuid} cannot be found`);
+    }
   }
 }

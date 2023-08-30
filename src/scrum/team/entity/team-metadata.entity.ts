@@ -1,34 +1,47 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
+  IsBoolean,
   IsDateString,
   IsEmail,
+  IsEnum,
+  IsIn,
+  IsNotEmpty,
+  IsNumberString,
   IsObject,
+  IsOptional,
   IsString,
+  IsUUID,
+  Length,
+  Matches,
+  MaxLength,
   MinLength,
-  isObject,
+  ValidateNested,
 } from 'class-validator';
-import { Expose } from 'class-transformer';
-import { CommonDateEntity } from 'src/scrum/common/entity/common-date.entity';
+import { Expose, Type } from 'class-transformer';
+import { CommonDateEntity } from '../../../common/entity/common-date.entity';
 
 export class TeamMetadataEntity {
-  constructor(ID: string, name: string, dates: CommonDateEntity) {
-    this.ID = ID;
+  constructor(name: string, dates: CommonDateEntity) {
     this.name = name;
     this.dates = dates;
   }
 
-  @ApiProperty()
-  @Expose({ name: 'ID', toPlainOnly: true })
-  @IsString()
-  ID: string; // Unique identifier for the Team Metadata
-
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Name of the team metadata.',
+    example: 'Development Team',
+  })
   @Expose({ name: 'name', toPlainOnly: true })
-  @IsString()
-  name: string; // Name of the Team Metadata
+  @IsString({ message: 'Name must be a string' })
+  name: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Dates related to the team metadata.',
+    type: CommonDateEntity,
+  })
   @Expose({ name: 'dates', toPlainOnly: true })
-  @IsObject()
+  @ValidateNested({ each: true })
   dates: CommonDateEntity;
 }

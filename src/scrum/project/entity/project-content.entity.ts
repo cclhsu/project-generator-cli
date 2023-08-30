@@ -1,57 +1,77 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  ArrayMaxSize,
+  ArrayMinSize,
   IsArray,
+  IsBoolean,
   IsDateString,
   IsEmail,
+  IsEnum,
+  IsIn,
+  IsNotEmpty,
+  IsNumberString,
   IsObject,
+  IsOptional,
   IsString,
+  IsUUID,
+  Length,
+  Matches,
+  MaxLength,
   MinLength,
-  isObject,
+  ValidateNested,
 } from 'class-validator';
-import { Expose } from 'class-transformer';
+import { Expose, Type } from 'class-transformer';
 import { IterationEntity } from '../../iteration/entity/iteration.entity';
 import { TaskEntity } from '../../task/entity/task.entity';
 import { TeamEntity } from '../../team/entity/team.entity';
+import { IdUuidStatusEntity } from '../../../common/entity';
 
 export class ProjectContentEntity {
   constructor(
     description: string,
-    sprints: IterationEntity[],
-    backlog: TaskEntity[],
-    iterations: { [ID: string]: IterationEntity },
-    team: TeamEntity,
+    iterations: IdUuidStatusEntity[],
+    backlog: IdUuidStatusEntity[],
+    team?: IdUuidStatusEntity,
   ) {
     this.description = description;
-    this.sprints = sprints;
-    this.backlog = backlog;
     this.iterations = iterations;
+    this.backlog = backlog;
     this.team = team;
   }
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Description of the project content.',
+    example: 'Develop new feature set.',
+  })
   @Expose({ name: 'description', toPlainOnly: true })
-  @IsString()
-  description: string; // Description of the Scrum Project
+  @IsString({ message: 'Description must be a string' })
+  description: string;
 
-  @ApiProperty()
-  @Expose({ name: 'sprints', toPlainOnly: true })
-  @IsArray()
-  sprints: IterationEntity[]; // Array of Sprints associated with the Scrum Project
-
-  @ApiProperty()
-  @Expose({ name: 'backlog', toPlainOnly: true })
-  @IsArray()
-  backlog: TaskEntity[]; // List of tasks in the project backlog
-
-  @ApiProperty()
+  @ApiProperty({
+    description: 'An array of iteration Entities.',
+    type: () => IdUuidStatusEntity,
+    isArray: true,
+  })
   @Expose({ name: 'iterations', toPlainOnly: true })
-  @IsObject()
-  iterations: {
-    [ID: string]: IterationEntity; // Mapping of iid to ISprintBoardMetadata for different iterations in the project
-  };
+  @IsArray({ message: 'Iterations must be an array' })
+  @ValidateNested({ each: true })
+  iterations: IdUuidStatusEntity[];
+
+  @ApiProperty({
+    description: 'An array of task Entities.',
+    type: () => IdUuidStatusEntity,
+    isArray: true,
+  })
+  @Expose({ name: 'backlog', toPlainOnly: true })
+  @IsArray({ message: 'Backlog must be an array' })
+  @ValidateNested({ each: true })
+  backlog: IdUuidStatusEntity[];
 
   @ApiProperty()
   @Expose({ name: 'team', toPlainOnly: true })
-  @IsObject()
-  team: TeamEntity;
+  @IsOptional()
+  @IsObject({ message: 'Team must be an object' })
+  @Type(() => TeamEntity)
+  @ValidateNested({ each: true })
+  team?: IdUuidStatusEntity;
 }

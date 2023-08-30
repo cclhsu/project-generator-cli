@@ -1,10 +1,14 @@
 import { Logger } from '@nestjs/common';
 import * as fs from 'fs-extra';
 import * as path from 'path';
-import { DEFAULT_SRC_ROOT_PATH } from 'src/common/constant/project.constant';
 import { addLeadingZeros, formatProjectName } from '../string/string.utils';
-import { DEFAULT_GIT_PROVIDER } from 'src/common/constant/git.constant';
-import { PROJECT_DOCUMENT_DIRECTORIES } from 'src/common/constant/document.constant';
+import {
+  DEFAULT_SRC_ROOT_PATH,
+  DEFAULT_GIT_PROVIDER,
+  PROJECT_LANGUAGE_TYPE_ARRAY,
+  PROJECT_TEMPLATE_TYPE_ARRAY,
+  PROJECT_DOCUMENT_DIRECTORIES
+} from '../../common/constant';
 import { resolveHomePath } from '../path/path.utils';
 import { createGitKeepFile } from '../git/gitignore.utils';
 

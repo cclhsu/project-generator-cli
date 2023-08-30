@@ -1,33 +1,38 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString } from 'class-validator';
-import { Expose } from 'class-transformer';
-// import { Transform, Type } from 'class-transformer';
-// import { UserMetadataDTO } from './user-metadata.dto';
-// import { UserContentDTO } from './user-content.dto';
+import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
+  IsBoolean,
+  IsDateString,
+  IsEmail,
+  IsEnum,
+  IsIn,
+  IsNotEmpty,
+  IsNumberString,
+  IsObject,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Length,
+  Matches,
+  MaxLength,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
+import { Expose, Type } from 'class-transformer';
 
 export class GetUserByIdRequestDTO {
-  constructor(
-    UUID: string,
-    // metadata: UserMetadataDTO,
-    // content: UserContentDTO,
-  ) {
-    this.UUID = UUID;
-    // this.metadata = metadata;
-    // this.content = content;
+  constructor(ID: string) {
+    this.ID = ID;
   }
 
-  @ApiProperty()
-  @Expose({ name: 'UUID', toPlainOnly: true })
-  @IsString()
-  UUID: string;
-
-  // @ApiProperty()
-  // @Expose({ name: 'metadata', toPlainOnly: true })
-  // @IsObject()
-  // metadata: UserMetadataDTO;
-
-  // @ApiProperty()
-  // @Expose({ name: 'content', toPlainOnly: true })
-  // @IsObject()
-  // content: UserContentDTO;
+  @ApiProperty({
+    description: 'ID is Unique identifier for ' + GetUserByIdRequestDTO.name,
+    example: '00000000-0000-0000-0000-000000000000',
+  })
+  @Expose({ name: 'ID', toPlainOnly: true })
+  @IsString({ message: 'ID must be a string.' })
+  @IsUUID('all', { message: 'Invalid ID format.' })
+  ID: string;
 }

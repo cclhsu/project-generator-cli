@@ -1,34 +1,47 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
+  IsBoolean,
   IsDateString,
   IsEmail,
+  IsEnum,
+  IsIn,
+  IsNotEmpty,
+  IsNumberString,
   IsObject,
+  IsOptional,
   IsString,
+  IsUUID,
+  Length,
+  Matches,
+  MaxLength,
   MinLength,
-  isObject,
+  ValidateNested,
 } from 'class-validator';
-import { Expose } from 'class-transformer';
-import { CommonDateDTO } from '../../common/dto/common-date.dto';
+import { Expose, Type } from 'class-transformer';
+import { CommonDateDTO } from '../../../common/dto/common-date.dto';
 
 export class MetricMetadataDTO {
-  constructor(ID: string, name: string, dates: CommonDateDTO) {
-    this.ID = ID;
+  constructor(name: string, dates: CommonDateDTO) {
     this.name = name;
     this.dates = dates;
   }
 
-  @ApiProperty()
-  @Expose({ name: 'ID', toPlainOnly: true })
-  @IsString()
-  ID: string; // Unique identifier for the Metric Metadata
-
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Name of the Metric Metadata.',
+    example: 'John Doe',
+  })
   @Expose({ name: 'name', toPlainOnly: true })
-  @IsString()
-  name: string; // Name of the Metric Metadata
+  @IsString({ message: 'Name must be a string' })
+  name: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Dates related to the Metric Metadata.',
+    type: CommonDateDTO,
+  })
   @Expose({ name: 'dates', toPlainOnly: true })
-  @IsObject()
+  @ValidateNested({ each: true })
   dates: CommonDateDTO;
 }

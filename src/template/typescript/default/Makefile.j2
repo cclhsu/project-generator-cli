@@ -67,6 +67,8 @@ install:  ## Install packages for the project
 update:  ## Update packages for the project
 	@echo ">>> $@ ..."
 	@echo "Update packages for the project"
+	ncu -u
+	npm outdated
 	npm update
 	@echo ">>> $@ ... Done"
 

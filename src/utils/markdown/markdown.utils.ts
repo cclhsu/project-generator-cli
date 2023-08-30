@@ -1,6 +1,6 @@
 import { Logger } from '@nestjs/common';
 import fs from 'fs';
-import path from 'path';
+import * as path from 'path';
 import { createDirectory } from '../directory/directory.utils';
 
 const logger: Logger = new Logger('MarkdownUtils');

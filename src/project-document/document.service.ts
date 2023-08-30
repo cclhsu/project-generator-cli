@@ -1,17 +1,22 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as path from 'path';
 import * as fs from 'fs-extra';
-// import { getDocumentPath } from 'src/common/command/common-command.utils';
-import { DocumentCommandOptionsDTO } from 'src/project-document/command/dto/document-command-options.dto';
-import { readSingleFromJSON } from 'src/utils/json/json.utils';
-import { copyTemplateFile, getTemplateRootPath } from 'src/utils/template/template.utils';
-import { DEFAULT_VARIABLE_FILE_PATH } from 'src/common/constant/common.constant';
-import { DEFAULT_DOCUMENT_FILE_PATH } from 'src/common/constant/document.constant';
-import { DEFAULT_DOCUMENT_VARIABLE_TEMPLATE_FILE_PATH } from 'src/common/constant/template.constant';
+// import { getDocumentPath } from '../common/command/common-command.utils';
+import { DocumentCommandOptionsDTO } from '../project-document/command/dto/document-command-options.dto';
+import { readSingleFromJSON } from '../utils/json/json.utils';
+import {
+  copyTemplateFile,
+  getTemplateRootPath,
+} from '../utils/template/template.utils';
+import {
+  DEFAULT_VARIABLE_FILE_PATH,
+  DEFAULT_DOCUMENT_FILE_PATH,
+  DEFAULT_DOCUMENT_VARIABLE_TEMPLATE_FILE_PATH,
+} from '../common/constant';
 // import {
 //   convertObjectValuesToString,
 //   copyTemplateFilesToProjectDir,
-// } from 'src/utils/template/template.utils';
+// } from '../utils/template/template.utils';
 
 @Injectable()
 export class DocumentService {
@@ -39,7 +44,7 @@ export class DocumentService {
       this.logger.error(
         `Variables file already exists at ${destinationTemplateFilePath}`,
       );
-      return
+      return;
     }
     this.logger.debug(
       `destinationTemplateFilePath: ${destinationTemplateFilePath}`,

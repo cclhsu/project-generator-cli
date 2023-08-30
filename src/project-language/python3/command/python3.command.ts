@@ -5,14 +5,14 @@ import {
   Option,
 } from 'nest-commander';
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from 'src/config/config.service';
-import { Python3Service } from 'src/project-language/python3/python3.service';
+import { ConfigService } from '../../../config/config.service';
+import { Python3Service } from '../../../project-language/python3/python3.service';
 import { InitPython3Command } from './init-python3.command';
 import { BuildPython3Command } from './build-python3.command';
 import { RunPython3Command } from './run-python3.command';
 import { TestPython3Command } from './test-python3.command';
 import { CleanPython3Command } from './clean-python3.command';
-// import { Python3Service } from 'src/python3/python3.service';
+// import { Python3Service } from '../../python3/python3.service';
 
 @Injectable()
 @Command({
@@ -32,7 +32,8 @@ export class Python3Command extends CommandRunner {
   constructor(
     private readonly inquirer: InquirerService,
     private readonly configService: ConfigService,
-    private readonly python3Service: Python3Service,) {
+    private readonly python3Service: Python3Service,
+  ) {
     super();
   }
 

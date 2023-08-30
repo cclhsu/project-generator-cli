@@ -166,3 +166,66 @@ export async function deleteFile(filePath: string): Promise<void> {
     throw error; // Optionally, you can rethrow the error to handle it elsewhere.
   }
 }
+
+export async function addFileExtension(
+  filePath: string,
+  fileExtension: string,
+): Promise<string> {
+  const resolvedFilePath: string = path.resolve(filePath);
+
+  try {
+    // Check if the file exists
+    const fileExists = await fs
+      .access(resolvedFilePath)
+      .then(() => true)
+      .catch(() => false);
+
+    if (!fileExists) {
+      logger.error(`File ${resolvedFilePath} does not exist`);
+      return '';
+    }
+
+    // Add the file extension
+    const newFilePath: string = `${resolvedFilePath}.${fileExtension}`;
+    await fs.rename(resolvedFilePath, newFilePath);
+
+    logger.log(`File extension added to ${resolvedFilePath}`);
+    return newFilePath;
+  } catch (error: any) {
+    logger.error('Error adding file extension:', error.message);
+    throw error; // Optionally, you can rethrow the error to handle it elsewhere.
+  }
+}
+
+export async function removeFileExtension(
+  filePath: string,
+  fileExtension: string,
+): Promise<string> {
+  const resolvedFilePath: string = path.resolve(filePath);
+
+  try {
+    // Check if the file exists
+    const fileExists = await fs
+      .access(resolvedFilePath)
+      .then(() => true)
+      .catch(() => false);
+
+    if (!fileExists) {
+      logger.error(`File ${resolvedFilePath} does not exist`);
+      return '';
+    }
+
+    // Remove the file extension
+    const newFilePath: string = resolvedFilePath.replace(
+      `.${fileExtension}`,
+      '',
+    );
+    await fs.rename(resolvedFilePath, newFilePath);
+
+    logger.log(`File extension removed from ${resolvedFilePath}`);
+    return newFilePath;
+  } catch (error: any) {
+    logger.error('Error removing file extension:', error.message);
+    throw error; // Optionally, you can rethrow the error to handle it elsewhere.
+  }
+}

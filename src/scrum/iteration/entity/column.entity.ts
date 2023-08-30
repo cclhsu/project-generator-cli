@@ -5,11 +5,12 @@ import {
   IsEmail,
   IsObject,
   IsString,
+  IsUUID,
   MinLength,
   isArray,
   isObject,
 } from 'class-validator';
-import { Expose } from 'class-transformer';
+import { Expose, Type } from 'class-transformer';
 import { TaskMetadataEntity } from '../../task/entity/task-metadata.entity';
 
 export class ColumnEntity<T extends TaskMetadataEntity> {
@@ -18,27 +19,37 @@ export class ColumnEntity<T extends TaskMetadataEntity> {
     this.tasks = tasks;
   }
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Name of the column.',
+  })
   @Expose({ name: 'name', toPlainOnly: true })
   @IsString()
   name: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Tasks in the column.',
+  })
   @Expose({ name: 'tasks', toPlainOnly: true })
-  @IsObject()
-  @IsArray()
   tasks: T[];
 }
 
-export const defaultKanbanColumns: ColumnEntity<TaskMetadataEntity>[] = [
-  new ColumnEntity<TaskMetadataEntity>('Backlog', []),
-  new ColumnEntity<TaskMetadataEntity>('To Do', []),
-  new ColumnEntity<TaskMetadataEntity>('In Progress', []),
-  new ColumnEntity<TaskMetadataEntity>('Done', []),
-];
+export const generateDefaultColumns = (
+  columnNames: string[],
+): ColumnEntity<TaskMetadataEntity>[] => {
+  return columnNames.map(
+    (columnName) => new ColumnEntity<TaskMetadataEntity>(columnName, []),
+  );
+};
 
-export const defaultScrumColumns: ColumnEntity<TaskMetadataEntity>[] = [
-  new ColumnEntity<TaskMetadataEntity>('To Do', []),
-  new ColumnEntity<TaskMetadataEntity>('In Progress', []),
-  new ColumnEntity<TaskMetadataEntity>('Done', []),
-];
+export const defaultKanbanColumns = generateDefaultColumns([
+  'Backlog',
+  'To Do',
+  'In Progress',
+  'Done',
+]);
+
+export const defaultScrumColumns = generateDefaultColumns([
+  'To Do',
+  'In Progress',
+  'Done',
+]);

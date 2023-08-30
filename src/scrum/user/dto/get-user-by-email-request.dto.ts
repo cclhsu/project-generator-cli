@@ -1,33 +1,40 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString } from 'class-validator';
-import { Expose } from 'class-transformer';
-// import { Transform, Type } from 'class-transformer';
-// import { UserMetadataDTO } from './user-metadata.dto';
-// import { UserContentDTO } from './user-content.dto';
+import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
+  IsBoolean,
+  IsDateString,
+  IsEmail,
+  IsEnum,
+  IsIn,
+  IsNotEmpty,
+  IsNumberString,
+  IsObject,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Length,
+  Matches,
+  MaxLength,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
+import { Expose, Type } from 'class-transformer';
+import { EMAIL_MSG } from '../../../common/command/dto';
 
-export class GetUserByIdRequestDTO {
-  constructor(
-    email: string,
-    // metadata: UserMetadataDTO,
-    // content: UserContentDTO,
-  ) {
+export class GetUserByEmailRequestDTO {
+  constructor(email: string) {
     this.email = email;
-    // this.metadata = metadata;
-    // this.content = content;
   }
 
-  @ApiProperty()
+  @ApiProperty({
+    description: EMAIL_MSG.message,
+    example: EMAIL_MSG.example,
+  })
   @Expose({ name: 'email', toPlainOnly: true })
-  @IsString()
+  @IsNotEmpty({ message: EMAIL_MSG.requiredMessage })
+  @IsString({ message: EMAIL_MSG.typeMessage })
+  @IsEmail({}, { message: EMAIL_MSG.errorMessage })
   email: string;
-
-  // @ApiProperty()
-  // @Expose({ name: 'metadata', toPlainOnly: true })
-  // @IsObject()
-  // metadata: UserMetadataDTO;
-
-  // @ApiProperty()
-  // @Expose({ name: 'content', toPlainOnly: true })
-  // @IsObject()
-  // content: UserContentDTO;
 }

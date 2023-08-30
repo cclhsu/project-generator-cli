@@ -1,13 +1,36 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString } from 'class-validator';
-import { Expose } from 'class-transformer';
-// import { Transform, Type } from 'class-transformer';
+import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
+  IsBoolean,
+  IsDateString,
+  IsEmail,
+  IsEnum,
+  IsIn,
+  IsNotEmpty,
+  IsNumberString,
+  IsObject,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Length,
+  Matches,
+  MaxLength,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
+import { Expose, Type } from 'class-transformer';
 
 export class SrcRootAnswerDTO {
   constructor(srcRoot: string) {
     this.srcRoot = srcRoot;
   }
-  @ApiProperty()
-  @IsString()
+
+  @ApiProperty({
+    description: 'Root directory path for the source code.',
+    example: '/path/to/src',
+  })
+  @IsString({ message: 'Source root must be a string.' })
   srcRoot: string;
 }

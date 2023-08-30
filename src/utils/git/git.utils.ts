@@ -2,10 +2,12 @@ import { Logger } from '@nestjs/common';
 // import { promisify } from 'util';
 import { execSync } from 'child_process';
 import {
-  DEFAULT_INIT_COMMIT_MESSAGE,
+  DEFAULT_INIT_COMMIT_MSG,
   DEFAULT_INIT_BRANCH,
   DEFAULT_BRANCHES,
-} from 'src/common/constant/git.constant';
+  PROJECT_LANGUAGE_TYPE_ARRAY,
+  PROJECT_TEMPLATE_TYPE_ARRAY,
+} from '../../common/constant';
 
 const logger: Logger = new Logger('GitUtils');
 // const execSyncAsync = promisify(execSync);
@@ -29,7 +31,7 @@ export async function createGitRepository(
     // Perform initial commit
     logger.debug('>>> Performing initial commit...');
     execSync(`git add .gitignore *`, { cwd: projectDirPath });
-    execSync(`git commit -m "${DEFAULT_INIT_COMMIT_MESSAGE}"`, {
+    execSync(`git commit -m "${DEFAULT_INIT_COMMIT_MSG}"`, {
       cwd: projectDirPath,
     });
 

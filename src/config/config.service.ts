@@ -4,13 +4,13 @@ import {
   DEFAULT_CONFIG_NAME,
   CONFIG_TYPES,
   DEFAULT_CONFIG_TYPE,
-} from 'src/common/constant/config.constant';
+} from '../common/constant';
 import {
   getCsvConfigFilePath,
   getJsonConfigFilePath,
   getYamlConfigFilePath,
-} from 'src/utils/config/config.utils';
-import { ProjectCommonCommandOptionsDTO } from 'src/common/command/dto/project-common-command-options.dto';
+} from '../utils/config/config.utils';
+import { ProjectCommonCommandOptionsDTO } from '..//common/command/dto/project-common-command-options.dto';
 
 @Injectable()
 export class ConfigService {

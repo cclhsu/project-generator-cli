@@ -29,11 +29,16 @@ export class ListUsersCommand extends CommandRunner {
     options?: Record<string, any> | undefined,
   ): Promise<void> {
     this.logger.debug('>>> Listing user');
-    // this.logger.debug(passedParams);
-    // this.logger.debug(options);
+    // this.logger.verbose('passedParam: ' + JSON.stringify(passedParams, null, 2));
+    // this.logger.verbose('options: ' + JSON.stringify(options, null, 2));
 
-    const user: UserResponseDTO[] = await this.userService.listUsers();
-    console.log(JSON.stringify(user, null, 2));
+    try {
+      const user: UserResponseDTO[] = await this.userService.listUsers();
+      console.log(JSON.stringify(user, null, 2));
+    } catch (error: any) {
+      this.logger.error(error.message);
+      this.logger.debug(error.stack);
+    }
   }
 }
 

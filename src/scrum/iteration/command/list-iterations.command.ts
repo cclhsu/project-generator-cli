@@ -9,6 +9,16 @@ import { IterationService } from '../iteration.service';
 import { IterationResponseDTO } from '../dto/iteration-response.dto';
 import { instanceToPlain } from 'class-transformer';
 
+import {
+  validateCompletedAt,
+  validateCreatedAt,
+  validateEndDate,
+  validateStartDate,
+  validateStartedAt,
+  validateUuid,
+  validateUpdatedAt,
+} from '../../../common/command/validation';
+
 @Injectable()
 @SubCommand({
   name: 'list',
@@ -29,11 +39,17 @@ export class ListIterationsCommand extends CommandRunner {
     options?: Record<string, any> | undefined,
   ): Promise<void> {
     this.logger.debug('>>> Listing iteration');
-    // this.logger.debug(passedParams);
-    // this.logger.debug(options);
+    // this.logger.verbose('passedParam: ' + JSON.stringify(passedParams, null, 2));
+    // this.logger.verbose('options: ' + JSON.stringify(options, null, 2));
 
-    const iteration: IterationResponseDTO[] = await this.iterationService.listIterations();
-    console.log(JSON.stringify(iteration, null, 2));
+    try {
+      const iteration: IterationResponseDTO[] =
+        await this.iterationService.listIterations();
+      console.log(JSON.stringify(iteration, null, 2));
+    } catch (error: any) {
+      this.logger.error(error.message);
+      this.logger.debug(error.stack);
+    }
   }
 }
 

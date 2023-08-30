@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 // import { ProjectSuiteController } from './projectSuite.controller';
 import { ProjectSuiteService } from './project-suite.service';
-import { ConfigModule } from 'src/config/config.module';
+import { ConfigModule } from '../config/config.module';
 import { GenerateProjectSuiteCommand } from './command/generate-project-suite.command';
 import { GetProjectSuiteVariablesTemplateCommand } from './command/get-project-suite-variables-template.command';
 import { ProjectSuiteCommand } from './command/project-suite.command';
@@ -26,7 +26,6 @@ import { ProjectSuiteVariablesFilePathQuestions } from './command/question/proje
     ProjectSuiteTypeQuestions,
     ProjectSuiteVariablesFileNameQuestions,
     ProjectSuiteVariablesFilePathQuestions,
-
   ],
   exports: [ProjectSuiteService],
 })

@@ -6,14 +6,43 @@ import {
 } from 'nest-commander';
 import { Injectable, Logger } from '@nestjs/common';
 import { UserService } from '../user.service';
-import { UpdateUserRequestDTO } from '../dto/update-user-request.dto';
-import { UserCommandOptionsDTO } from './dto/user-command-options.dto';
-import { UserMetadataCommandOptionsDTO } from './dto/user-metadata-command-options.dto';
-import { UserContentCommandOptionsDTO } from './dto/user-content-command-options.dto';
-import { UuidAnswerDTO } from '../../common/command/dto/uuid-answer.dto';
-import { IdAnswerDTO } from '../../common/command/dto/id-answer.dto';
-import { NameAnswerDTO } from '../../common/command/dto/name-answer.dto';
-import { getCommonDateCommandOptionsDTO } from '../../common/command/utils/common-date-command.utils';
+import { UpdateUserRequestDTO, UserContentDTO, UserMetadataDTO } from '../dto';
+import { getCommonDateDTO } from '../../../common/command/utils';
+import { validate } from 'class-validator';
+import {
+  EmailAnswerDTO,
+  UserFirstNameAnswerDTO,
+  IdAnswerDTO,
+  UserLastNameAnswerDTO,
+  UserFullNameAnswerDTO,
+  PasswordAnswerDTO,
+  PhoneAnswerDTO,
+  ProjectRolesAnswerDTO,
+  ScrumRolesAnswerDTO,
+  UserIdAnswerDTO,
+  UuidAnswerDTO,
+} from '../../../common/command/dto';
+import {
+  validateCompletedAt,
+  validateCreatedAt,
+  validateEmail,
+  validateEndDate,
+  validatePhone,
+  validateProjectRoles,
+  validateScrumRoles,
+  validateStartDate,
+  validateStartedAt,
+  validateUuid,
+  validateUpdatedAt,
+  validateUserId,
+  validateUserFullName,
+} from '../../../common/command/validation';
+import {
+  UPDATE_ACTION_TYPE,
+  convertStringToProjectRoles,
+  convertStringToScrumRoles,
+} from '../../../common/constant';
+import { UserDTO } from '../dto';
 
 @Injectable()
 @SubCommand({
@@ -34,15 +63,14 @@ export class UpdateUserCommand extends CommandRunner {
     options?: Record<string, any> | undefined,
   ): Promise<void> {
     this.logger.debug('>>> Updating user');
-    // this.logger.debug(passedParams);
-    // this.logger.debug(options);
+    // this.logger.verbose('passedParam: ' + JSON.stringify(passedParams, null, 2));
+    // this.logger.verbose('options: ' + JSON.stringify(options, null, 2));
 
-    const userMetadataCommandOptions: UserMetadataCommandOptionsDTO = {
-      ID: options?.id ?? '',
+    const userMetadata: UserMetadataDTO = {
       name: options?.name ?? '',
       dates: options?.dates ?? undefined,
     };
-    const UserContentCommandOptions: UserContentCommandOptionsDTO = {
+    const UserContent: UserContentDTO = {
       email: options?.email ?? '',
       phone: options?.phone ?? '',
       lastName: options?.lastName ?? '',
@@ -51,69 +79,156 @@ export class UpdateUserCommand extends CommandRunner {
       scrumRoles: options?.scrumRoles ?? [],
       password: options?.password ?? '',
     };
-    const userCommandOptions: UserCommandOptionsDTO = {
+    const user: UserDTO = {
+      ID: options?.id ?? '',
       UUID: options?.uuid ?? '00000000-0000-0000-0000-000000000000',
-      metadata: userMetadataCommandOptions,
-      content: UserContentCommandOptions,
+      metadata: userMetadata,
+      content: UserContent,
       // ...options,
     };
 
-    // while (!userCommandOptions.UUID) {
-    //   userCommandOptions.UUID = (
-    //     await this.inquirer.ask<UuidAnswerDTO>('uuid-questions', options)
-    //   ).UUID;
+    // ********************************************************************
+
+    // if (!user.ID) {
+    //   user.ID = (
+    //     await this.inquirer.ask<UserIdAnswerDTO>('user-id-questions', options)
+    //   ).ID;
     // }
 
-    if (!userCommandOptions.metadata.ID) {
-      userCommandOptions.metadata.ID = (
-        await this.inquirer.ask<IdAnswerDTO>('id-questions', options)
-      ).ID;
-    }
-
-    if (!userCommandOptions.metadata.name) {
-      userCommandOptions.metadata.name = (
-        await this.inquirer.ask<NameAnswerDTO>('name-questions', options)
-      ).name;
+    while (!user.UUID) {
+      user.UUID = (
+        await this.inquirer.ask<UuidAnswerDTO>('uuid-questions', options)
+      ).UUID;
     }
 
     // ********************************************************************
+    // Update Metadata
 
-    userCommandOptions.metadata.dates = await getCommonDateCommandOptionsDTO(
+    if (!user.metadata.name) {
+      user.metadata.name = (
+        await this.inquirer.ask<UserFullNameAnswerDTO>(
+          'user-full-name-questions',
+          options,
+        )
+      ).fullName;
+    }
+
+    // ********************************************************************
+    // Update Dates
+
+    user.metadata.dates = await getCommonDateDTO(
       // this.configService,
       this.inquirer,
       options,
+      UPDATE_ACTION_TYPE,
     );
 
     // ********************************************************************
+    // Update Content
 
-    console.log(userCommandOptions);
+    this.logger.verbose(JSON.stringify(user, null, 2));
+
+    while (!user.content.email) {
+      user.content.email = (
+        await this.inquirer.ask<EmailAnswerDTO>('email-questions', options)
+      ).email;
+    }
+
+    while (!user.content.phone) {
+      user.content.phone = (
+        await this.inquirer.ask<PhoneAnswerDTO>('phone-questions', options)
+      ).phone;
+    }
+
+    while (!user.content.lastName) {
+      user.content.lastName = (
+        await this.inquirer.ask<UserLastNameAnswerDTO>(
+          'last-name-questions',
+          options,
+        )
+      ).lastName;
+    }
+
+    while (!user.content.firstName) {
+      user.content.firstName = (
+        await this.inquirer.ask<UserFirstNameAnswerDTO>(
+          'first-name-questions',
+          options,
+        )
+      ).firstName;
+    }
+
+    while (!user.content.projectRoles) {
+      user.content.projectRoles = (
+        await this.inquirer.ask<ProjectRolesAnswerDTO>(
+          'project-roles-questions',
+          options,
+        )
+      ).projectRoles;
+    }
+
+    while (!user.content.scrumRoles) {
+      user.content.scrumRoles = (
+        await this.inquirer.ask<ScrumRolesAnswerDTO>(
+          'scrum-roles-questions',
+          options,
+        )
+      ).scrumRoles;
+    }
+
+    while (!user.content.password) {
+      user.content.password = (
+        await this.inquirer.ask<PasswordAnswerDTO>(
+          'password-questions',
+          options,
+        )
+      ).password;
+    }
 
     // ********************************************************************
 
     const updateUserRequestDTO: UpdateUserRequestDTO = {
-      UUID: userCommandOptions.UUID,
-      metadata: new UserMetadataCommandOptionsDTO(
-        userCommandOptions.metadata.ID,
-        userCommandOptions.metadata.name,
-        userCommandOptions.metadata.dates,
+      // ID: user.ID,
+      UUID: user.UUID,
+      metadata: new UserMetadataDTO(
+        user.metadata.name,
+        user.metadata.dates,
       ),
-      content: new UserContentCommandOptionsDTO(
-        userCommandOptions.content.email,
-        userCommandOptions.content.phone,
-        userCommandOptions.content.lastName,
-        userCommandOptions.content.firstName,
-        userCommandOptions.content.projectRoles,
-        userCommandOptions.content.scrumRoles,
-        userCommandOptions.content.password,
+      content: new UserContentDTO(
+        user.content.email,
+        user.content.phone,
+        user.content.lastName,
+        user.content.firstName,
+        user.content.projectRoles,
+        user.content.scrumRoles,
+        user.content.password,
       ),
     };
 
-    console.log(updateUserRequestDTO);
-    this.userService.updateUser(
-      updateUserRequestDTO.UUID,
-      updateUserRequestDTO,
-    );
+    try {
+      this.logger.verbose(JSON.stringify(updateUserRequestDTO, null, 2));
+      await this.userService.updateUser(
+        updateUserRequestDTO.UUID,
+        updateUserRequestDTO,
+      );
+    } catch (error: any) {
+      this.logger.error(error.message);
+      this.logger.debug(error.stack);
+    }
   }
+
+  // @Option({
+  //   flags: '-i, --id [id]',
+  //   description: 'The id of the user',
+  //   // defaultValue: 'PPP-0000',
+  // })
+  // parseId(val: string): string {
+  //   const res = validateUserId(val);
+  //   if (res === true) {
+  //     return val;
+  //   }
+  //   throw new Error(res + ': ' + val + '\n');
+  // }
 
   @Option({
     flags: '-u, --uuid [UUID]',
@@ -121,17 +236,15 @@ export class UpdateUserCommand extends CommandRunner {
     // defaultValue: '00000000-0000-0000-0000-000000000000',
   })
   parseUUID(val: string): string {
-    return val;
+    const res = validateUuid(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
-  @Option({
-    flags: '-i, --id [id]',
-    description: 'The id of the user',
-    // defaultValue: 'PPP-0000',
-  })
-  parseId(val: string): string {
-    return val;
-  }
+  // ********************************************************************
+  // Update Metadata
 
   @Option({
     flags: '-n, --name [name]',
@@ -139,28 +252,41 @@ export class UpdateUserCommand extends CommandRunner {
     // defaultValue: 'default-user-name',
   })
   parseName(val: string): string {
-    return val;
+    const res = validateUserFullName(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   // ********************************************************************
+  // Update Dates
 
-  @Option({
-    flags: '-c, --createdBy [createdBy]',
-    description: 'The user who created the user',
-    // defaultValue: 'default-created-by',
-  })
-  parseCreatedBy(val: string): string {
-    return val;
-  }
+  // @Option({
+  //   flags: '-c, --createdBy [createdBy]',
+  //   description: 'The user who created the user',
+  //   // defaultValue: 'default-created-by',
+  // })
+  // parseCreatedBy(val: string): string {
+  //   const res = validateUserId(val);
+  //   if (res === true) {
+  //     return val;
+  //   }
+  //   throw new Error(res + ': ' + val + '\n');
+  // }
 
-  @Option({
-    flags: '-d, --createdDate [createdDate]',
-    description: 'The date when the user was created',
-    // defaultValue: 'default-created-date',
-  })
-  parseCreatedDate(val: string): string {
-    return val;
-  }
+  // @Option({
+  //   flags: '-d, --createdAt [createdAt]',
+  //   description: 'The date when the user was created',
+  //   // defaultValue: 'default-created-date',
+  // })
+  // parseCreatedAt(val: string): string {
+  //   const res = validateCreatedAt(val);
+  //   if (res === true) {
+  //     return new Date(val).toISOString();
+  //   }
+  //   throw new Error(res + ': ' + val + '\n');
+  // }
 
   @Option({
     flags: '-b, --updatedBy [updatedBy]',
@@ -168,16 +294,24 @@ export class UpdateUserCommand extends CommandRunner {
     // defaultValue: 'default-updated-by',
   })
   parseUpdatedBy(val: string): string {
-    return val;
+    const res = validateUserId(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   @Option({
-    flags: '-e, --updatedDate [updatedDate]',
+    flags: '-e, --updatedAt [updatedAt]',
     description: 'The date when the user was last updated',
     // defaultValue: 'default-updated-date',
   })
-  parseUpdatedDate(val: string): string {
-    return val;
+  parseUpdatedAt(val: string): string {
+    const res = validateUpdatedAt(val);
+    if (res === true) {
+      return new Date(val).toISOString();
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   @Option({
@@ -186,16 +320,24 @@ export class UpdateUserCommand extends CommandRunner {
     // defaultValue: 'default-started-by',
   })
   parseStartedBy(val: string): string {
-    return val;
+    const res = validateUserId(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   @Option({
-    flags: '-t, --startedDate [startedDate]',
+    flags: '-t, --startedAt [startedAt]',
     description: 'The date when the user was started',
     // defaultValue: 'default-started-date',
   })
-  parseStartedDate(val: string): string {
-    return val;
+  parseStartedAt(val: string): string {
+    const res = validateStartedAt(val);
+    if (res === true) {
+      return new Date(val).toISOString();
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   @Option({
@@ -204,7 +346,11 @@ export class UpdateUserCommand extends CommandRunner {
     // defaultValue: 'default-start-date',
   })
   parseStartDate(val: string): string {
-    return val;
+    const res = validateStartDate(val);
+    if (res === true) {
+      return new Date(val).toISOString();
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   @Option({
@@ -213,7 +359,11 @@ export class UpdateUserCommand extends CommandRunner {
     // defaultValue: 'default-end-date',
   })
   parseEndDate(val: string): string {
-    return val;
+    const res = validateEndDate(val);
+    if (res === true) {
+      return new Date(val).toISOString();
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   @Option({
@@ -222,15 +372,105 @@ export class UpdateUserCommand extends CommandRunner {
     // defaultValue: 'default-completed-by',
   })
   parseCompletedBy(val: string): string {
+    const res = validateUserId(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
+  }
+
+  @Option({
+    flags: '-p, --completedAt [completedAt]',
+    description: 'The date when the user was completed',
+    // defaultValue: 'default-completed-date',
+  })
+  parseCompletedAt(val: string): string {
+    const res = validateCompletedAt(val);
+    if (res === true) {
+      return new Date(val).toISOString();
+    }
+    throw new Error(res + ': ' + val + '\n');
+  }
+
+  // ********************************************************************
+  // Update Content
+
+  @Option({
+    flags: '-e, --email [email]',
+    description: 'The email of the user',
+    // defaultValue: 'default-email',
+  })
+  parseEmail(val: string): string {
+    const res = validateEmail(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
+  }
+
+  @Option({
+    flags: '-p, --phone [phone]',
+    description: 'The phone of the user',
+    // defaultValue: 'default-phone',
+  })
+  parsePhone(val: string): string {
+    const res = validatePhone(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
+  }
+
+  @Option({
+    flags: '-l, --lastName [lastName]',
+    description: 'The last name of the user',
+    // defaultValue: 'default-last-name',
+  })
+  parseLastName(val: string): string {
     return val;
   }
 
   @Option({
-    flags: '-p, --completedDate [completedDate]',
-    description: 'The date when the user was completed',
-    // defaultValue: 'default-completed-date',
+    flags: '-f, --firstName [firstName]',
+    description: 'The first name of the user',
+    // defaultValue: 'default-first-name',
   })
-  parseCompletedDate(val: string): string {
+  parseFirstName(val: string): string {
+    return val;
+  }
+
+  @Option({
+    flags: '-r, --projectRoles [projectRoles...]',
+    description: 'The project roles of the user',
+    // defaultValue: 'default-project-roles',
+  })
+  parseProjectRoles(val: string): string[] {
+    const res = validateProjectRoles(val);
+    if (res === true) {
+      return convertStringToProjectRoles(val);
+    }
+    throw new Error(res + ': ' + val + '\n');
+  }
+
+  @Option({
+    flags: '-u, --scrumRoles [scrumRoles...]',
+    description: 'The scrum roles of the user',
+    // defaultValue: 'default-scrum-roles',
+  })
+  parseScrumRoles(val: string): string[] {
+    const res = validateScrumRoles(val);
+    if (res === true) {
+      return convertStringToScrumRoles(val);
+    }
+    throw new Error(res + ': ' + val + '\n');
+  }
+
+  @Option({
+    flags: '-w, --password [password]',
+    description: 'The password of the user',
+    // defaultValue: 'default-password',
+  })
+  parsePassword(val: string): string {
     return val;
   }
 
@@ -240,4 +480,6 @@ export class UpdateUserCommand extends CommandRunner {
 // npm run build
 // nestjs build
 // node ./dist/cmd.main user update --help
-// node ./dist/cmd.main user update --uuid 3 --id ABC-123 --name "User 1" --createdBy john.doe --createdDate "2021-01-01T00:00:00.000Z" --updatedBy john.doe --updatedDate "2021-01-01T00:00:00.000Z" --startedBy john.doe --startedDate "2021-01-01T00:00:00.000Z" --startDate "2021-01-01T00:00:00.000Z" --endDate "2021-01-01T00:00:00.000Z" --completedBy john.doe --completedDate "2021-01-01T00:00:00.000Z"
+// node ./dist/cmd.main user update
+// node ./dist/cmd.main user update --uuid 15a955b3-bc5f-4e33-a29d-eb0738b15a9f --id john.doe --name 'John Doe' --email 'john.doe@mail.com' --phone '0999-345-678' --lastName 'Kent' --firstName 'John' --projectRoles 'PM, QA' --scrumRoles 'PO,MEMBER' --password 'P@ssw0rd999' --startDate '2023-01-01T00:00:00.000Z' --endDate '2023-12-31T00:00:00.000Z' --updatedBy john.kent
+// node ./dist/cmd.main user update --uuid f7f7e6eb-13be-4c22-b52a-2bcba29c74a7 --id jane.doe --name 'Jane Doe' --email 'jane.doe@mail.com' --phone '0999-654-321' --lastName 'Kent' --firstName 'Jane' --projectRoles 'EM,DEV' --scrumRoles 'SM,MEMBER' --password 'P@ssw0rd999' --startDate '2023-01-01T00:00:00.000Z' --endDate '2023-12-31T00:00:00.000Z' --updatedBy jane.kent --startedAt '2023-01-01T00:00:00.000Z' --startedBy 'john.doe' --completedAt '2023-12-31T00:00:00.000Z' --completedBy 'jane.doe'

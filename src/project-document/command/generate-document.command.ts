@@ -5,12 +5,14 @@ import {
   Option,
 } from 'nest-commander';
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from 'src/config/config.service';
+import { ConfigService } from '../../config/config.service';
 import { DocumentService } from '../document.service';
 import { DocumentCommandOptionsDTO } from './dto/document-command-options.dto';
 import { getDocumentCommandOptionsDTO } from './document-command.utils';
-import { DOCUMENT_TEMPLATE_TYPES } from 'src/common/constant/document.constant';
-import { DEFAULT_VARIABLE_FILE_PATH } from 'src/common/constant/common.constant';
+import {
+  DOCUMENT_TEMPLATE_TYPES,
+  DEFAULT_VARIABLE_FILE_PATH,
+} from '../../common/constant';
 
 @Injectable()
 @SubCommand({
@@ -44,7 +46,11 @@ export class GenerateDocumentCommand extends CommandRunner {
         options,
       );
 
-    this.documentService.generateDocument(documentCommandOptionsDTO);
+    try {
+      await this.documentService.generateDocument(documentCommandOptionsDTO);
+    } catch (error: any) {
+      console.log(error.message);
+    }
   }
 
   // @Option({

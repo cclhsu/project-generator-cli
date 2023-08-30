@@ -6,9 +6,17 @@ import {
 } from 'nest-commander';
 import { Injectable, Logger } from '@nestjs/common';
 import { TaskService } from '../task.service';
-import { TaskCommandOptionsDTO } from './dto/task-command-options.dto';
-import { DeleteTaskCommandOptionsDTO } from './dto/delete-task-command-options.dto';
-import { UuidAnswerDTO } from '../../common/command/dto/uuid-answer.dto';
+import { GetTaskByUuidRequestDTO, TaskDTO } from '../dto';
+import { UuidAnswerDTO } from '../../../common/command/dto';
+import {
+  validateCompletedAt,
+  validateCreatedAt,
+  validateEndDate,
+  validateStartDate,
+  validateStartedAt,
+  validateUuid,
+  validateUpdatedAt,
+} from '../../../common/command/validation';
 
 @Injectable()
 @SubCommand({
@@ -29,32 +37,32 @@ export class DeleteTaskCommand extends CommandRunner {
     options?: Record<string, any> | undefined,
   ): Promise<void> {
     this.logger.debug('>>> Deleting task');
-    // this.logger.debug(passedParams);
-    // this.logger.debug(options);
+    // this.logger.verbose('passedParam: ' + JSON.stringify(passedParams, null, 2));
+    // this.logger.verbose('options: ' + JSON.stringify(options, null, 2));
 
-    const taskCommandOptions: DeleteTaskCommandOptionsDTO = {
+    const task: GetTaskByUuidRequestDTO = {
       UUID: options?.uuid ?? '00000000-0000-0000-0000-000000000000',
       // metadata: null,
       // content: null,
       // ...options,
     };
 
-    while (!taskCommandOptions.UUID) {
-      taskCommandOptions.UUID = (
+    // ********************************************************************
+
+    while (!task.UUID) {
+      task.UUID = (
         await this.inquirer.ask<UuidAnswerDTO>('uuid-questions', options)
       ).UUID;
     }
+    this.logger.verbose(`config: ${JSON.stringify(task.UUID, null, 2)}`);
 
-    this.displayResults(taskCommandOptions.UUID ?? 'N/A');
-
-    const task: TaskCommandOptionsDTO = await this.taskService.deleteTask(
-      taskCommandOptions.UUID,
-    );
-    console.log(JSON.stringify(task, null, 2));
-  }
-
-  displayResults(UUID: string): void {
-    console.log(`UUID: ${UUID}`);
+    try {
+      const taskDTO: TaskDTO = await this.taskService.deleteTask(task.UUID);
+      console.log(JSON.stringify(taskDTO, null, 2));
+    } catch (error: any) {
+      this.logger.error(error.message);
+      this.logger.debug(error.stack);
+    }
   }
 
   @Option({
@@ -63,7 +71,11 @@ export class DeleteTaskCommand extends CommandRunner {
     // defaultValue: '00000000-0000-0000-0000-000000000000',
   })
   parseUUID(val: string): string {
-    return val;
+    const res = validateUuid(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 }
 

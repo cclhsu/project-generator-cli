@@ -6,14 +6,27 @@ import {
 } from 'nest-commander';
 import { Injectable, Logger } from '@nestjs/common';
 import { MetricService } from '../metric.service';
-import { UpdateMetricRequestDTO } from '../dto/update-metric-request.dto';
-import { MetricCommandOptionsDTO } from './dto/metric-command-options.dto';
-import { MetricMetadataCommandOptionsDTO } from './dto/metric-metadata-command-options.dto';
-import { MetricContentCommandOptionsDTO } from './dto/metric-content-command-options.dto';
-import { UuidAnswerDTO } from '../../common/command/dto/uuid-answer.dto';
-import { IdAnswerDTO } from '../../common/command/dto/id-answer.dto';
-import { NameAnswerDTO } from '../../common/command/dto/name-answer.dto';
-import { getCommonDateCommandOptionsDTO } from '../../common/command/utils/common-date-command.utils';
+import { UpdateMetricRequestDTO } from '../dto';
+import { getCommonDateDTO } from '../../../common/command/utils/common-date-command.utils';
+import { validate } from 'class-validator';
+import { MetricDTO, MetricContentDTO, MetricMetadataDTO } from '../dto';
+import {
+  IdAnswerDTO,
+  MetricNameAnswerDTO,
+  UuidAnswerDTO,
+} from '../../../common/command/dto';
+import {
+  validateCompletedAt,
+  validateCreatedAt,
+  validateEndDate,
+  validateStartDate,
+  validateStartedAt,
+  validateUuid,
+  validateUpdatedAt,
+  validateUserId,
+  validateMetricName,
+} from '../../../common/command/validation';
+import { UPDATE_ACTION_TYPE } from '../../../common/constant';
 
 @Injectable()
 @SubCommand({
@@ -34,70 +47,100 @@ export class UpdateMetricCommand extends CommandRunner {
     options?: Record<string, any> | undefined,
   ): Promise<void> {
     this.logger.debug('>>> Updating metric');
-    // this.logger.debug(passedParams);
-    // this.logger.debug(options);
+    // this.logger.verbose('passedParam: ' + JSON.stringify(passedParams, null, 2));
+    // this.logger.verbose('options: ' + JSON.stringify(options, null, 2));
 
-    const metricMetadataCommandOptions: MetricMetadataCommandOptionsDTO = {
-      ID: options?.id ?? '',
+    const metricMetadata: MetricMetadataDTO = {
       name: options?.name ?? '',
       dates: options?.dates ?? undefined,
     };
-    const MetricContentCommandOptions: MetricContentCommandOptionsDTO = {};
-    const metricCommandOptions: MetricCommandOptionsDTO = {
+    const MetricContent: MetricContentDTO = {};
+    const metric: MetricDTO = {
+      ID: options?.id ?? '',
       UUID: options?.uuid ?? '00000000-0000-0000-0000-000000000000',
-      metadata: metricMetadataCommandOptions,
-      content: MetricContentCommandOptions,
+      metadata: metricMetadata,
+      content: MetricContent,
       // ...options,
     };
 
-    // while (!metricCommandOptions.UUID) {
-    //   metricCommandOptions.UUID = (
-    //     await this.inquirer.ask<UuidAnswerDTO>('uuid-questions', options)
-    //   ).UUID;
+    // ********************************************************************
+
+    // if (!metric.ID) {
+    //   metric.ID = (
+    //     await this.inquirer.ask<IdAnswerDTO>('id-questions', options)
+    //   ).ID;
     // }
 
-    if (!metricCommandOptions.metadata.ID) {
-      metricCommandOptions.metadata.ID = (
-        await this.inquirer.ask<IdAnswerDTO>('id-questions', options)
-      ).ID;
-    }
-
-    if (!metricCommandOptions.metadata.name) {
-      metricCommandOptions.metadata.name = (
-        await this.inquirer.ask<NameAnswerDTO>('name-questions', options)
-      ).name;
+    while (!metric.UUID) {
+      metric.UUID = (
+        await this.inquirer.ask<UuidAnswerDTO>('uuid-questions', options)
+      ).UUID;
     }
 
     // ********************************************************************
+    // Update Metadata
 
-    metricCommandOptions.metadata.dates = await getCommonDateCommandOptionsDTO(
+    if (!metric.metadata.name) {
+      metric.metadata.name = (
+        await this.inquirer.ask<MetricNameAnswerDTO>(
+          'metric-name-questions',
+          options,
+        )
+      ).metricName;
+    }
+
+    // ********************************************************************
+    // Update Dates
+
+    metric.metadata.dates = await getCommonDateDTO(
       // this.configService,
       this.inquirer,
       options,
+      UPDATE_ACTION_TYPE,
     );
 
     // ********************************************************************
+    // Update Content
 
-    console.log(metricCommandOptions);
+    this.logger.verbose(JSON.stringify(metric, null, 2));
 
     // ********************************************************************
 
     const updateMetricRequestDTO: UpdateMetricRequestDTO = {
-      UUID: metricCommandOptions.UUID,
-      metadata: new MetricMetadataCommandOptionsDTO(
-        metricCommandOptions.metadata.ID,
-        metricCommandOptions.metadata.name,
-        metricCommandOptions.metadata.dates,
+      // ID: metric.ID,
+      UUID: metric.UUID,
+      metadata: new MetricMetadataDTO(
+        metric.metadata.name,
+        metric.metadata.dates,
       ),
-      content: new MetricContentCommandOptionsDTO(),
+      content: new MetricContentDTO(),
     };
 
-    console.log(updateMetricRequestDTO);
-    this.metricService.updateMetric(
-      updateMetricRequestDTO.UUID,
-      updateMetricRequestDTO,
-    );
+    try {
+      this.logger.verbose(JSON.stringify(updateMetricRequestDTO, null, 2));
+      await this.metricService.updateMetric(
+        updateMetricRequestDTO.UUID,
+        updateMetricRequestDTO,
+      );
+    } catch (error: any) {
+      this.logger.error(error.message);
+      this.logger.debug(error.stack);
+    }
   }
+
+  // @Option({
+  //   flags: '-i, --id [id]',
+  //   description: 'The id of the metric',
+  //   // defaultValue: 'PPP-0000',
+  // })
+  // parseId(val: string): string {
+  //   // const res = validateMetricId(val);
+  //   // if (res === true) {
+  //   //   return val;
+  //   // }
+  //   // throw new Error(res + ': ' + val + '\n');
+  //   return val;
+  // }
 
   @Option({
     flags: '-u, --uuid [UUID]',
@@ -105,17 +148,15 @@ export class UpdateMetricCommand extends CommandRunner {
     // defaultValue: '00000000-0000-0000-0000-000000000000',
   })
   parseUUID(val: string): string {
-    return val;
+    const res = validateUuid(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
-  @Option({
-    flags: '-i, --id [id]',
-    description: 'The id of the metric',
-    // defaultValue: 'PPP-0000',
-  })
-  parseId(val: string): string {
-    return val;
-  }
+  // ********************************************************************
+  // Update Metadata
 
   @Option({
     flags: '-n, --name [name]',
@@ -123,28 +164,41 @@ export class UpdateMetricCommand extends CommandRunner {
     // defaultValue: 'default-metric-name',
   })
   parseName(val: string): string {
-    return val;
+    const res = validateMetricName(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   // ********************************************************************
+  // Update Dates
 
-  @Option({
-    flags: '-c, --createdBy [createdBy]',
-    description: 'The user who created the metric',
-    // defaultValue: 'default-created-by',
-  })
-  parseCreatedBy(val: string): string {
-    return val;
-  }
+  // @Option({
+  //   flags: '-c, --createdBy [createdBy]',
+  //   description: 'The user who created the metric',
+  //   // defaultValue: 'default-created-by',
+  // })
+  // parseCreatedBy(val: string): string {
+  //   const res = validateUserId(val);
+  //   if (res === true) {
+  //     return val;
+  //   }
+  //   throw new Error(res + ': ' + val + '\n');
+  // }
 
-  @Option({
-    flags: '-d, --createdDate [createdDate]',
-    description: 'The date when the metric was created',
-    // defaultValue: 'default-created-date',
-  })
-  parseCreatedDate(val: string): string {
-    return val;
-  }
+  // @Option({
+  //   flags: '-d, --createdAt [createdAt]',
+  //   description: 'The date when the metric was created',
+  //   // defaultValue: 'default-created-date',
+  // })
+  // parseCreatedAt(val: string): string {
+  //   const res = validateCreatedAt(val);
+  //   if (res === true) {
+  //     return new Date(val).toISOString();
+  //   }
+  //   throw new Error(res + ': ' + val + '\n');
+  // }
 
   @Option({
     flags: '-b, --updatedBy [updatedBy]',
@@ -152,16 +206,24 @@ export class UpdateMetricCommand extends CommandRunner {
     // defaultValue: 'default-updated-by',
   })
   parseUpdatedBy(val: string): string {
-    return val;
+    const res = validateUserId(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   @Option({
-    flags: '-e, --updatedDate [updatedDate]',
+    flags: '-e, --updatedAt [updatedAt]',
     description: 'The date when the metric was last updated',
     // defaultValue: 'default-updated-date',
   })
-  parseUpdatedDate(val: string): string {
-    return val;
+  parseUpdatedAt(val: string): string {
+    const res = validateUpdatedAt(val);
+    if (res === true) {
+      return new Date(val).toISOString();
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   @Option({
@@ -170,16 +232,24 @@ export class UpdateMetricCommand extends CommandRunner {
     // defaultValue: 'default-started-by',
   })
   parseStartedBy(val: string): string {
-    return val;
+    const res = validateUserId(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   @Option({
-    flags: '-t, --startedDate [startedDate]',
+    flags: '-t, --startedAt [startedAt]',
     description: 'The date when the metric was started',
     // defaultValue: 'default-started-date',
   })
-  parseStartedDate(val: string): string {
-    return val;
+  parseStartedAt(val: string): string {
+    const res = validateStartedAt(val);
+    if (res === true) {
+      return new Date(val).toISOString();
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   @Option({
@@ -188,7 +258,11 @@ export class UpdateMetricCommand extends CommandRunner {
     // defaultValue: 'default-start-date',
   })
   parseStartDate(val: string): string {
-    return val;
+    const res = validateStartDate(val);
+    if (res === true) {
+      return new Date(val).toISOString();
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   @Option({
@@ -197,7 +271,11 @@ export class UpdateMetricCommand extends CommandRunner {
     // defaultValue: 'default-end-date',
   })
   parseEndDate(val: string): string {
-    return val;
+    const res = validateEndDate(val);
+    if (res === true) {
+      return new Date(val).toISOString();
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   @Option({
@@ -206,17 +284,28 @@ export class UpdateMetricCommand extends CommandRunner {
     // defaultValue: 'default-completed-by',
   })
   parseCompletedBy(val: string): string {
-    return val;
+    const res = validateUserId(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   @Option({
-    flags: '-p, --completedDate [completedDate]',
+    flags: '-p, --completedAt [completedAt]',
     description: 'The date when the metric was completed',
     // defaultValue: 'default-completed-date',
   })
-  parseCompletedDate(val: string): string {
-    return val;
+  parseCompletedAt(val: string): string {
+    const res = validateCompletedAt(val);
+    if (res === true) {
+      return new Date(val).toISOString();
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
+
+  // ********************************************************************
+  // Update Content
 
   // ********************************************************************
 }
@@ -224,4 +313,4 @@ export class UpdateMetricCommand extends CommandRunner {
 // npm run build
 // nestjs build
 // node ./dist/cmd.main metric update --help
-// node ./dist/cmd.main metric update --uuid 3 --id ABC-123 --name "Metric 1" --createdBy john.doe --createdDate "2021-01-01T00:00:00.000Z" --updatedBy john.doe --updatedDate "2021-01-01T00:00:00.000Z" --startedBy john.doe --startedDate "2021-01-01T00:00:00.000Z" --startDate "2021-01-01T00:00:00.000Z" --endDate "2021-01-01T00:00:00.000Z" --completedBy john.doe --completedDate "2021-01-01T00:00:00.000Z"
+// node ./dist/cmd.main metric update --uuid 3 --id ABC-123 --name "Metric 1" --createdBy john.doe --createdAt "2021-01-01T00:00:00.000Z" --updatedBy john.doe --updatedAt "2021-01-01T00:00:00.000Z" --startedBy john.doe --startedAt "2021-01-01T00:00:00.000Z" --startDate "2021-01-01T00:00:00.000Z" --endDate "2021-01-01T00:00:00.000Z" --completedBy john.doe --completedAt "2021-01-01T00:00:00.000Z"

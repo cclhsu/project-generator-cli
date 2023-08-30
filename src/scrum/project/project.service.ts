@@ -6,17 +6,28 @@ import { ProjectEntity } from './entity/project.entity';
 import { ProjectLocalRepository as ProjectRepository } from './repository/project-local.repository';
 import { ProjectMetadataDTO } from './dto/project-metadata.dto';
 import { ProjectContentDTO } from './dto/project-content.dto';
-import { TeamMetadataDTO } from '../team/dto/team-metadata.dto';
-import { CommonDateDTO } from '../common/dto/common-date.dto';
-import { TeamDTO } from '../team/dto/team.dto';
-import { TeamContentDTO } from '../team/dto/team-content.dto';
-// import { ProjectPrismaRepository as ProjectRepository } from './repositories/project-prisma.repository';
+import { ProjectDTO } from '../project/dto/project.dto';
+import {
+  UpdateProjectContentRequestDTO,
+  UpdateProjectMetadataRequestDTO,
+  ProjectContentResponseDTO,
+  ProjectMetadataResponseDTO,
+  ProjectIdUuidDTO,
+} from './dto';
+import { validate } from 'class-validator';
+import { validateDtoMetadataContent } from '../../utils/validation/validation.utils';
+import { CommonDateDTO } from '../../common/dto';
+import { updateCommonDates } from '../../common/command/utils';
 
 @Injectable()
 export class ProjectService {
   private readonly logger = new Logger(ProjectService.name);
 
   constructor(private readonly projectRepository: ProjectRepository) {}
+
+  async listProjectIdsAndUUIDs(): Promise<ProjectIdUuidDTO[]> {
+    return this.projectRepository.listProjectIdsAndUUIDs();
+  }
 
   async listProjects(): Promise<ProjectResponseDTO[]> {
     const projects = await this.projectRepository.listProjects();
@@ -36,15 +47,27 @@ export class ProjectService {
   async createProject(
     createProjectRequestDTO: CreateProjectRequestDTO,
   ): Promise<ProjectResponseDTO> {
-    const name: string = createProjectRequestDTO.metadata.name;
+    const existingProjects = await this.projectRepository.listProjects();
+    if (existingProjects.length > 0) {
+      throw new Error('Only one project is allowed.');
+    }
 
-    try {
-      // Check if project already exists
-      const projectExists = await this.getProjectByName(name);
-      if (projectExists) {
-        throw new Error('Project already exists');
-      }
-    } catch (NotFoundException) {}
+    const {
+      ID,
+      UUID,
+      metadata: { name },
+    } = createProjectRequestDTO;
+
+    if (await this.isProjectExist(name, ID, UUID)) {
+      throw new Error('Project with the same name, ID, or UUID already exists');
+    }
+
+    const error = await validateDtoMetadataContent<CreateProjectRequestDTO>(
+      createProjectRequestDTO,
+    );
+    if (error) {
+      throw new Error(error);
+    }
 
     // Create the project
     const project = await this.projectRepository.createProject(
@@ -56,12 +79,25 @@ export class ProjectService {
 
   async updateProject(
     uuid: string,
-    updateProjectRequestDTO: ProjectResponseDTO,
+    updateProjectRequestDTO: UpdateProjectRequestDTO,
   ): Promise<ProjectResponseDTO> {
     // Check if project exists
     const project = await this.getProject(uuid);
     if (!project) {
       throw new NotFoundException('Project not found');
+    }
+
+    const dates: CommonDateDTO = updateCommonDates(
+      project.metadata.dates,
+      updateProjectRequestDTO.metadata.dates,
+    );
+    updateProjectRequestDTO.metadata.dates = dates;
+
+    const error = await validateDtoMetadataContent<UpdateProjectRequestDTO>(
+      updateProjectRequestDTO,
+    );
+    if (error) {
+      throw new Error(error);
     }
 
     // Update the project
@@ -95,6 +131,15 @@ export class ProjectService {
     return this.convertToProjectResponse(deleteProject);
   }
 
+  async getProjectByID(ID: string): Promise<ProjectResponseDTO> {
+    const project = await this.projectRepository.getProjectByID(ID);
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+    this.logger.log(`Project: ${JSON.stringify(project, null, 2)}`);
+    return this.convertToProjectResponse(project);
+  }
+
   async getProjectByName(name: string): Promise<ProjectResponseDTO> {
     const project = await this.projectRepository.getProjectByName(name);
     if (!project) {
@@ -104,57 +149,187 @@ export class ProjectService {
     return this.convertToProjectResponse(project);
   }
 
+  async listProjectsWithMetadata(): Promise<ProjectMetadataResponseDTO[]> {
+    const projects = await this.projectRepository.listProjects();
+    return projects.map((project) =>
+      this.convertToProjectMetadataResponse(project),
+    );
+  }
+
+  async updateProjectMetadata(
+    uuid: string,
+    updateProjectMetadataRequestDTO: UpdateProjectMetadataRequestDTO,
+  ): Promise<ProjectMetadataResponseDTO> {
+    // Check if project exists
+    const project = await this.getProject(uuid);
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    const dates: CommonDateDTO = updateCommonDates(
+      project.metadata.dates,
+      updateProjectMetadataRequestDTO.metadata.dates,
+    );
+    updateProjectMetadataRequestDTO.metadata.dates = dates;
+
+    // Update the project
+    const updatedProjectMetadata: ProjectMetadataDTO =
+      await this.projectRepository.updateProjectMetadata(
+        uuid,
+        updateProjectMetadataRequestDTO.metadata,
+      );
+
+    if (!updatedProjectMetadata) {
+      throw new Error('Failed to update project');
+    }
+
+    this.logger.log(
+      `Project: ${JSON.stringify(updatedProjectMetadata, null, 2)}`,
+    );
+    return new ProjectMetadataResponseDTO(
+      project.ID,
+      uuid,
+      updatedProjectMetadata,
+    );
+  }
+
+  async updateProjectContent(
+    uuid: string,
+    updateProjectContentRequestDTO: UpdateProjectContentRequestDTO,
+  ): Promise<ProjectContentResponseDTO> {
+    // Check if project exists
+    const project = await this.getProject(uuid);
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    // // Update the dates values UpdatedAt and UpdatedBy
+    // const dates: CommonDateDTO = updateCommonDates(
+    //   project.metadata.dates,
+    //   updateProjectContentRequestDTO.metadata.dates,
+    //   true,
+    // );
+    // updateProjectContentRequestDTO.metadata.dates = dates;
+
+    // Update the project
+    const updatedProjectContent: ProjectContentDTO =
+      await this.projectRepository.updateProjectContent(
+        uuid,
+        updateProjectContentRequestDTO.content,
+      );
+
+    if (!updatedProjectContent) {
+      throw new Error('Failed to update project');
+    }
+
+    this.logger.log(
+      `Project: ${JSON.stringify(updatedProjectContent, null, 2)}`,
+    );
+    return new ProjectContentResponseDTO(
+      project.ID,
+      uuid,
+      updatedProjectContent,
+    );
+  }
+
+  async getProjectMetadata(uuid: string): Promise<ProjectMetadataResponseDTO> {
+    const project = await this.projectRepository.getProject(uuid);
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+    this.logger.log(`Project: ${JSON.stringify(project, null, 2)}`);
+    return new ProjectMetadataResponseDTO(project.ID, uuid, project.metadata);
+  }
+
+  async getProjectContent(uuid: string): Promise<ProjectContentResponseDTO> {
+    const project = await this.projectRepository.getProject(uuid);
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+    this.logger.log(`Project: ${JSON.stringify(project, null, 2)}`);
+    return new ProjectContentResponseDTO(project.ID, uuid, project.content);
+  }
+
   // Other methods...
 
+  async isProjectExist(
+    name: string,
+    ID: string,
+    UUID: string,
+  ): Promise<boolean> {
+    try {
+      const projectByName = await this.projectRepository.getProjectByName(name);
+      if (projectByName) {
+        return true;
+      }
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        this.logger.verbose(`Project not found by name: ${name}`);
+      } else {
+        this.logger.error(error);
+      }
+    }
+
+    try {
+      const projectByID = await this.projectRepository.getProjectByID(ID);
+      if (projectByID) {
+        return true;
+      }
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        this.logger.verbose(`Project not found by ID: ${ID}`);
+      } else {
+        this.logger.error(error);
+      }
+    }
+
+    try {
+      const projectByUUID = await this.projectRepository.getProject(UUID);
+      if (projectByUUID) {
+        return true;
+      }
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        this.logger.verbose(`Project not found by UUID: ${UUID}`);
+      } else {
+        this.logger.error(error);
+      }
+    }
+    return false;
+  }
+
+  async isNoProjectsExist(): Promise<boolean> {
+    const projects = await this.projectRepository.listProjects();
+    return projects.length === 0;
+  }
+
+  async isExactlyOneProjectExist(): Promise<boolean> {
+    const projects = await this.projectRepository.listProjects();
+    return projects.length === 1;
+  }
+
+  async isAtLeastOneProjectExist(): Promise<boolean> {
+    const projects = await this.projectRepository.listProjects();
+    return projects.length >= 1;
+  }
+
   convertToProjectResponse(project: ProjectEntity): ProjectResponseDTO {
+    this.logger.verbose(
+      `Converting Project: ${JSON.stringify(project, null, 2)}`,
+    );
     const projectMetadata: ProjectMetadataDTO = new ProjectMetadataDTO(
-      project.metadata.ID,
       project.metadata.name,
       project.metadata.status,
-      new CommonDateDTO(
-        project.metadata.dates.createdDate,
-        project.metadata.dates.createdBy,
-        project.metadata.dates.updatedDate,
-        project.metadata.dates.updatedBy,
-        project.metadata.dates.startedDate,
-        project.metadata.dates.startedBy,
-        project.metadata.dates.startDate,
-        project.metadata.dates.endDate,
-        project.metadata.dates.completedDate,
-        project.metadata.dates.completedBy,
-      ),
+      project.metadata.dates,
     );
     const projectContent: ProjectContentDTO = new ProjectContentDTO(
       project.content.description,
-      project.content.sprints,
-      project.content.backlog,
       project.content.iterations,
-      new TeamDTO(
-        project.content.team.UUID,
-        new TeamMetadataDTO(
-          project.content.team.metadata.ID,
-          project.content.team.metadata.name,
-          new CommonDateDTO(
-            project.content.team.metadata.dates.createdDate,
-            project.content.team.metadata.dates.createdBy,
-            project.content.team.metadata.dates.updatedDate,
-            project.content.team.metadata.dates.updatedBy,
-            project.content.team.metadata.dates.startedDate,
-            project.content.team.metadata.dates.startedBy,
-            project.content.team.metadata.dates.startDate,
-            project.content.team.metadata.dates.endDate,
-            project.content.team.metadata.dates.completedDate,
-            project.content.team.metadata.dates.completedBy,
-          ),
-        ),
-        new TeamContentDTO(
-          project.content.team.content.members,
-          project.content.team.content.productOwner,
-          project.content.team.content.scrumMaster,
-        ),
-      ),
+      project.content.backlog,
+      project.content.team,
     );
     const projectResponse: ProjectResponseDTO = new ProjectResponseDTO(
+      project.ID,
       project.UUID,
       projectMetadata,
       projectContent,
@@ -165,22 +340,24 @@ export class ProjectService {
   convertToProjectResponseList(
     projects: ProjectEntity[],
   ): ProjectResponseDTO[] {
+    this.logger.verbose(
+      `Converting Project: ${JSON.stringify(projects, null, 2)}`,
+    );
     const projectResponseList: ProjectResponseDTO[] = projects.map(
       (project) => {
         const projectMetadata: ProjectMetadataDTO = new ProjectMetadataDTO(
-          project.metadata.ID,
           project.metadata.name,
           project.metadata.status,
           project.metadata.dates,
         );
         const projectContent: ProjectContentDTO = new ProjectContentDTO(
           project.content.description,
-          project.content.sprints,
-          project.content.backlog,
           project.content.iterations,
+          project.content.backlog,
           project.content.team,
         );
         const projectResponse: ProjectResponseDTO = new ProjectResponseDTO(
+          project.ID,
           project.UUID,
           projectMetadata,
           projectContent,
@@ -190,5 +367,20 @@ export class ProjectService {
     );
 
     return projectResponseList;
+  }
+
+  private convertToProjectMetadataResponse(
+    project: ProjectEntity,
+  ): ProjectMetadataResponseDTO {
+    const projectMetadata: ProjectMetadataDTO = new ProjectMetadataDTO(
+      project.metadata.name,
+      project.metadata.status,
+      project.metadata.dates,
+    );
+    return new ProjectMetadataResponseDTO(
+      project.ID,
+      project.UUID,
+      projectMetadata,
+    );
   }
 }

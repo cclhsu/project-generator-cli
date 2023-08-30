@@ -6,9 +6,17 @@ import {
 } from 'nest-commander';
 import { Injectable, Logger } from '@nestjs/common';
 import { MetricService } from '../metric.service';
-import { MetricCommandOptionsDTO } from './dto/metric-command-options.dto';
-import { GetMetricCommandOptionsDTO } from './dto/get-metric-command-options.dto';
-import { UuidAnswerDTO } from '../../common/command/dto/uuid-answer.dto';
+import { UuidAnswerDTO } from '../../../common/command/dto';
+import {
+  validateCompletedAt,
+  validateCreatedAt,
+  validateEndDate,
+  validateStartDate,
+  validateStartedAt,
+  validateUuid,
+  validateUpdatedAt,
+} from '../../../common/command/validation';
+import { GetMetricByUuidRequestDTO, MetricDTO } from '../dto';
 
 @Injectable()
 @SubCommand({
@@ -29,32 +37,33 @@ export class GetMetricCommand extends CommandRunner {
     options?: Record<string, any> | undefined,
   ): Promise<void> {
     this.logger.debug('>>> Getting metric');
-    // this.logger.debug(passedParams);
-    // this.logger.debug(options);
+    // this.logger.verbose('passedParam: ' + JSON.stringify(passedParams, null, 2));
+    // this.logger.verbose('options: ' + JSON.stringify(options, null, 2));
 
-    const metricCommandOptions: GetMetricCommandOptionsDTO = {
+    const metric: GetMetricByUuidRequestDTO = {
       UUID: options?.uuid ?? '00000000-0000-0000-0000-000000000000',
       // metadata: null,
       // content: null,
       // ...options,
     };
 
-    while (!metricCommandOptions.UUID) {
-      metricCommandOptions.UUID = (
+    // ********************************************************************
+
+    while (!metric.UUID) {
+      metric.UUID = (
         await this.inquirer.ask<UuidAnswerDTO>('uuid-questions', options)
       ).UUID;
     }
-
-    this.displayResults(metricCommandOptions.UUID ?? 'N/A');
-
-    const metric: MetricCommandOptionsDTO = await this.metricService.getMetric(
-      metricCommandOptions.UUID,
-    );
-    console.log(JSON.stringify(metric, null, 2));
-  }
-
-  displayResults(UUID: string): void {
-    console.log(`UUID: ${UUID}`);
+    this.logger.verbose(`config: ${JSON.stringify(metric.UUID, null, 2)}`);
+    try {
+      const metricDTO: MetricDTO = await this.metricService.getMetric(
+        metric.UUID,
+      );
+      console.log(JSON.stringify(metricDTO, null, 2));
+    } catch (error: any) {
+      this.logger.error(error.message);
+      this.logger.debug(error.stack);
+    }
   }
 
   @Option({
@@ -63,7 +72,11 @@ export class GetMetricCommand extends CommandRunner {
     // defaultValue: '00000000-0000-0000-0000-000000000000',
   })
   parseUUID(val: string): string {
-    return val;
+    const res = validateUuid(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 }
 

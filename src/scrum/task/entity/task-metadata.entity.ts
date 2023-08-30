@@ -1,26 +1,47 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  ArrayMaxSize,
+  ArrayMinSize,
   IsArray,
+  IsBoolean,
   IsDateString,
   IsEmail,
+  IsEnum,
+  IsIn,
+  IsNotEmpty,
+  IsNumberString,
   IsObject,
+  IsOptional,
   IsString,
+  IsUUID,
+  Length,
+  Matches,
+  MaxLength,
   MinLength,
-  isObject,
+  ValidateNested,
 } from 'class-validator';
-import { Expose } from 'class-transformer';
-import { TASK_PRIORITY_TYPES } from '../../common/constant/task-priority.constant';
-import { TASK_RISK_TYPES } from '../../common/constant/task-risk.constant';
-import { TASK_STATUS_TYPES } from '../../common/constant/task-status.constant';
-import { CommonDateEntity } from '../../common/entity/common-date.entity';
-import { IterationInfoEntity } from '../../iteration/entity/iteration-info.entity';
-import { TaskRelationsEntity } from './task-relations.entity';
-import { TaskStoryPointsEntity } from './task-story-points.entity';
-import { TASK_TYPES } from '../../common/constant/task-types.constant';
+import { Expose, Type } from 'class-transformer';
+import { CommonDateEntity } from '../../../common/entity/common-date.entity';
+import { TaskRelationsEntity } from './relation/task-relations.entity';
+import { TaskStoryPointsEntity } from './story-points/task-story-points.entity';
+import {
+  TASK_TYPES,
+  TASK_STATUS_TYPES,
+  TASK_PRIORITY_TYPES,
+  TASK_RISK_TYPES,
+  TASK_TYPE_ARRAY,
+  DEFAULT_TASK_TYPE,
+  TASK_STATUS_TYPE_ARRAY,
+  DEFAULT_TASK_STATUS,
+  TASK_PRIORITY_TYPE_ARRAY,
+  DEFAULT_TASK_PRIORITY,
+  TASK_RISK_TYPE_ARRAY,
+  DEFAULT_TASK_RISK,
+} from '../../../common/constant';
+import { IdUuidStatusEntity } from '../../../common/entity';
 
 export class TaskMetadataEntity {
   constructor(
-    ID: string,
     name: string,
     taskType: TASK_TYPES,
     assignee: string,
@@ -30,10 +51,9 @@ export class TaskMetadataEntity {
     tags: string[],
     dates: CommonDateEntity,
     storyPoint: TaskStoryPointsEntity,
-    sprints: IterationInfoEntity[],
-    relations: TaskRelationsEntity[],
+    iterations?: IdUuidStatusEntity[],
+    relations?: TaskRelationsEntity[],
   ) {
-    this.ID = ID;
     this.name = name;
     this.taskType = taskType;
     this.assignee = assignee;
@@ -43,68 +63,141 @@ export class TaskMetadataEntity {
     this.tags = tags;
     this.dates = dates;
     this.storyPoint = storyPoint;
-    this.sprints = sprints;
+    this.iterations = iterations;
     this.relations = relations;
   }
 
-  @ApiProperty()
-  @Expose({ name: 'ID', toPlainOnly: true })
-  @IsString()
-  ID: string;
-
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Name of the Task Metadata.',
+    example: 'John Doe',
+  })
   @Expose({ name: 'name', toPlainOnly: true })
-  @IsString()
+  @IsString({ message: 'Name must be a string' })
   name: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Task Type',
+    example: TASK_TYPE_ARRAY,
+    type: [String],
+    default: DEFAULT_TASK_TYPE,
+  })
   @Expose({ name: 'taskType', toPlainOnly: true })
-  @IsString()
+  @IsEnum(TASK_TYPE_ARRAY, {
+    message:
+      'Invalid task type type. Allowed values: ' + TASK_TYPE_ARRAY.join(', '),
+    context: {
+      reason: 'taskType',
+    },
+  })
   taskType: TASK_TYPES;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: "The assignee's name.",
+    minLength: 2, // Minimum length constraint
+    maxLength: 50, // Maximum length constraint
+    example: 'John Doe',
+  })
   @Expose({ name: 'assignee', toPlainOnly: true })
   @IsString()
+  @Length(2, 50, {
+    message:
+      'Assignee name must be between $constraint1 and $constraint2 characters.',
+  })
   assignee: string;
 
-  @ApiProperty()
-  @Expose({ name: 'status', toPlainOnly: true })
-  @IsString()
+  @ApiProperty({
+    description: 'Task Status',
+    example: TASK_STATUS_TYPE_ARRAY,
+    type: [String],
+    default: DEFAULT_TASK_STATUS,
+  })
+  @Expose({ name: 'taskStatus', toPlainOnly: true })
+  @IsEnum(TASK_STATUS_TYPE_ARRAY, {
+    message:
+      'Invalid task status type. Allowed values: ' +
+      TASK_STATUS_TYPE_ARRAY.join(', '),
+    context: {
+      reason: 'taskStatus',
+    },
+  })
   status: TASK_STATUS_TYPES;
 
-  @ApiProperty()
-  @Expose({ name: 'priority', toPlainOnly: true })
-  @IsString()
+  @ApiProperty({
+    description: 'Task Priority',
+    example: TASK_PRIORITY_TYPE_ARRAY,
+    type: [String],
+    default: DEFAULT_TASK_PRIORITY,
+  })
+  @Expose({ name: 'taskPriority', toPlainOnly: true })
+  @IsEnum(TASK_PRIORITY_TYPE_ARRAY, {
+    message:
+      'Invalid task priority type. Allowed values: ' +
+      TASK_PRIORITY_TYPE_ARRAY.join(', '),
+    context: {
+      reason: 'taskPriority',
+    },
+  })
   priority: TASK_PRIORITY_TYPES;
 
-  @ApiProperty()
-  @Expose({ name: 'risk', toPlainOnly: true })
-  @IsString()
+  @ApiProperty({
+    description: 'Task Risk',
+    example: TASK_RISK_TYPE_ARRAY,
+    type: [String],
+    default: DEFAULT_TASK_RISK,
+  })
+  @Expose({ name: 'taskRisk', toPlainOnly: true })
+  @IsEnum(TASK_RISK_TYPE_ARRAY, {
+    message:
+      'Invalid task risk type. Allowed values: ' +
+      TASK_RISK_TYPE_ARRAY.join(', '),
+    context: {
+      reason: 'taskRisk',
+    },
+  })
   risk: TASK_RISK_TYPES;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Tags associated with the task.',
+  })
   @Expose({ name: 'tags', toPlainOnly: true })
   @IsString({ each: true })
   @IsArray()
   tags: string[];
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Dates related to the task.',
+    type: CommonDateEntity,
+  })
   @Expose({ name: 'dates', toPlainOnly: true })
-  @IsObject()
+  @ValidateNested({ each: true })
   dates: CommonDateEntity;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Story points of the task.',
+  })
   @Expose({ name: 'storyPoint', toPlainOnly: true })
   @IsObject()
+  @Type(() => TaskStoryPointsEntity)
+  @ValidateNested({ each: true })
   storyPoint: TaskStoryPointsEntity;
 
-  @ApiProperty()
-  @Expose({ name: 'sprints', toPlainOnly: true })
-  @IsArray()
-  sprints?: IterationInfoEntity[];
+  @ApiProperty({
+    description: 'Sprints associated with the task.',
+    type: () => IdUuidStatusEntity,
+    isArray: true,
+  })
+  @Expose({ name: 'iterations', toPlainOnly: true })
+  @IsArray({ message: 'Iterations must be an array' })
+  @IsOptional()
+  @ValidateNested({ each: true })
+  iterations?: IdUuidStatusEntity[];
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Relations of the task with other tasks.',
+  })
   @Expose({ name: 'relations', toPlainOnly: true })
   @IsObject()
+  @IsOptional()
+  @ValidateNested({ each: true })
   relations?: TaskRelationsEntity[];
 }

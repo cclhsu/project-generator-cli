@@ -1,9 +1,8 @@
 import { Logger } from '@nestjs/common';
 import { resolveHomePath } from '../path/path.utils';
+import * as path from 'path';
 
 const logger: Logger = new Logger('ConfigUtils');
-
-import path from 'path';
 
 export function getConfigFilePath(
   projectName: string,

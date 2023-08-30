@@ -1,41 +1,75 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  ArrayMaxSize,
+  ArrayMinSize,
   IsArray,
+  IsBoolean,
   IsDateString,
   IsEmail,
+  IsEnum,
+  IsIn,
+  IsNotEmpty,
+  IsNumberString,
   IsObject,
+  IsOptional,
   IsString,
+  IsUUID,
+  Length,
+  Matches,
+  MaxLength,
   MinLength,
-  isObject,
+  ValidateNested,
 } from 'class-validator';
-import { Expose } from 'class-transformer';
-import { CommentDTO } from './comment.dto';
-import { DocumentationLinkDTO } from './documentation-link.dto';
-import { TaskDescriptionDTO } from './task-description.dto';
+import { Expose, Type } from 'class-transformer';
+import { IdUuidDTO, NameUrlDTO } from '../../../common/dto';
+import { TaskDescriptionStringDTO as TaskDescriptionDTO } from './description/task-description-string.dto';
 
 export class TaskContentDTO {
   constructor(
+    context: string,
     description: TaskDescriptionDTO,
-    documentationLinks: DocumentationLinkDTO[],
-    comments: CommentDTO[],
+    links: NameUrlDTO[],
+    messages: IdUuidDTO[],
   ) {
+    this.context = context;
     this.description = description;
-    this.documentationLinks = documentationLinks;
-    this.comments = comments;
+    this.links = links;
+    this.messages = messages;
   }
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Context of the task.',
+    example: 'Develop new feature set.',
+  })
+  @Expose({ name: 'context', toPlainOnly: true })
+  @IsString({ message: 'Context must be a string' })
+  context: string;
+
+  @ApiProperty({
+    description: 'Description of the task.',
+    type: TaskDescriptionDTO,
+  })
   @Expose({ name: 'description', toPlainOnly: true })
   @IsObject()
+  @Type(() => TaskDescriptionDTO)
+  @ValidateNested({ each: true })
   description: TaskDescriptionDTO;
 
-  @ApiProperty()
-  @Expose({ name: 'documentationLinks', toPlainOnly: true })
+  @ApiProperty({
+    description: 'Links to documentation related to the task.',
+    type: [NameUrlDTO],
+  })
+  @Expose({ name: 'links', toPlainOnly: true })
   @IsArray()
-  documentationLinks?: DocumentationLinkDTO[];
+  @IsOptional()
+  links?: NameUrlDTO[];
 
-  @ApiProperty()
-  @Expose({ name: 'comments', toPlainOnly: true })
+  @ApiProperty({
+    description: 'Messages associated with the task.',
+    type: [IdUuidDTO],
+  })
+  @Expose({ name: 'messages', toPlainOnly: true })
   @IsArray()
-  comments?: CommentDTO[];
+  @IsOptional()
+  messages?: IdUuidDTO[];
 }

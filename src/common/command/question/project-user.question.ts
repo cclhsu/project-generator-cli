@@ -1,4 +1,5 @@
 import { Question, QuestionSet } from 'nest-commander';
+import { validateUserId } from '../validation';
 
 @QuestionSet({ name: 'project-user-questions' })
 export class ProjectUserQuestions {
@@ -6,13 +7,7 @@ export class ProjectUserQuestions {
     message: 'Enter project-user:',
     name: 'projectUser',
     type: 'input',
-    validate: (val: string) => {
-      if (val.trim() !== '' && val.trim().toLowerCase() !== 'n/a') {
-        return true;
-      } else {
-        return 'project-user is required';
-      }
-    },
+    validate: validateUserId,
   })
   parseProjectUser(val: string): string {
     return val;

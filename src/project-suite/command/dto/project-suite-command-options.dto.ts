@@ -1,15 +1,35 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString } from 'class-validator';
-import { Expose } from 'class-transformer';
-// import { Transform, Type } from 'class-transformer';
+import {
+  IsArray,
+  IsBoolean,
+  IsDateString,
+  IsEmail,
+  IsEnum,
+  IsIn,
+  IsObject,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Matches,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
+import { Expose, Type } from 'class-transformer';
 
 export class ProjectSuiteCommandOptionsDTO {
-  // @ApiProperty()
+  // @ApiProperty({
+  //   description: 'The path to the configuration file.',
+  //   example: '/path/to/config.json',
+  // })
   // @IsString()
-  // configPath?: string;
+  // configPath: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'The path to the template file.',
+    example: '/path/to/config.json',
+  })
   @IsString()
+  @IsOptional()
   templateRoot?: string;
 
   @ApiProperty()

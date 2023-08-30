@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 // import { DocumentController } from './document.controller';
-import { ConfigModule } from 'src/config/config.module';
+import { ConfigModule } from '../config/config.module';
 import { DocumentCommand } from './command/document.command';
 import { DocumentFileNameQuestions } from './command/question/document-file-name.question';
 import { DocumentFilePathQuestions } from './command/question/document-file-path.question';

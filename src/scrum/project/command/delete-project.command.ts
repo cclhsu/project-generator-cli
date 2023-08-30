@@ -6,9 +6,17 @@ import {
 } from 'nest-commander';
 import { Injectable, Logger } from '@nestjs/common';
 import { ProjectService } from '../project.service';
-import { DeleteProjectCommandOptionsDTO } from './dto/delete-project-command-options.dto';
-import { ProjectCommandOptionsDTO } from './dto/project-command-options.dto';
-import { UuidAnswerDTO } from '../../common/command/dto/uuid-answer.dto';
+import { GetProjectByUuidRequestDTO, ProjectDTO } from '../dto';
+import { UuidAnswerDTO } from '../../../common/command/dto';
+import {
+  validateCompletedAt,
+  validateCreatedAt,
+  validateEndDate,
+  validateStartDate,
+  validateStartedAt,
+  validateUuid,
+  validateUpdatedAt,
+} from '../../../common/command/validation';
 
 @Injectable()
 @SubCommand({
@@ -29,31 +37,34 @@ export class DeleteProjectCommand extends CommandRunner {
     options?: Record<string, any> | undefined,
   ): Promise<void> {
     this.logger.debug('>>> Deleting project');
-    // this.logger.debug(passedParams);
-    // this.logger.debug(options);
+    // this.logger.verbose('passedParam: ' + JSON.stringify(passedParams, null, 2));
+    // this.logger.verbose('options: ' + JSON.stringify(options, null, 2));
 
-    const projectCommandOptions: DeleteProjectCommandOptionsDTO = {
+    const project: GetProjectByUuidRequestDTO = {
       UUID: options?.uuid ?? '00000000-0000-0000-0000-000000000000',
       // metadata: null,
       // content: null,
       // ...options,
     };
 
-    while (!projectCommandOptions.UUID) {
-      projectCommandOptions.UUID = (
+    // ********************************************************************
+
+    while (!project.UUID) {
+      project.UUID = (
         await this.inquirer.ask<UuidAnswerDTO>('uuid-questions', options)
       ).UUID;
     }
+    this.logger.verbose(`config: ${JSON.stringify(project.UUID, null, 2)}`);
 
-    this.displayResults(projectCommandOptions.UUID ?? 'N/A');
-
-    const project: ProjectCommandOptionsDTO =
-      await this.projectService.deleteProject(projectCommandOptions.UUID);
-    console.log(JSON.stringify(project, null, 2));
-  }
-
-  displayResults(UUID: string): void {
-    console.log(`UUID: ${UUID}`);
+    try {
+      const projectDTO: ProjectDTO = await this.projectService.deleteProject(
+        project.UUID,
+      );
+      console.log(JSON.stringify(projectDTO, null, 2));
+    } catch (error: any) {
+      this.logger.error(error.message);
+      this.logger.debug(error.stack);
+    }
   }
 
   @Option({
@@ -62,7 +73,11 @@ export class DeleteProjectCommand extends CommandRunner {
     // defaultValue: '00000000-0000-0000-0000-000000000000',
   })
   parseUUID(val: string): string {
-    return val;
+    const res = validateUuid(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 }
 

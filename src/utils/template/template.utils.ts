@@ -6,7 +6,7 @@ import {
   DEFAULT_LICENSE_TEMPLATE_FILE_PATH,
   DEFAULT_MAKEFILE_TEMPLATE_FILE_PATH,
   DEFAULT_README_TEMPLATE_FILE_PATH,
-} from 'src/common/constant/template.constant';
+} from '../../common/constant';
 import { createDirectory } from '../directory/directory.utils';
 import { addLeadingZeros } from '../string/string.utils';
 

@@ -5,11 +5,12 @@ import {
   IsEmail,
   IsObject,
   IsString,
+  IsUUID,
   MinLength,
   isArray,
   isObject,
 } from 'class-validator';
-import { Expose } from 'class-transformer';
+import { Expose, Type } from 'class-transformer';
 import { TaskMetadataDTO } from '../../task/dto/task-metadata.dto';
 
 export class ColumnDTO<T extends TaskMetadataDTO> {
@@ -18,27 +19,37 @@ export class ColumnDTO<T extends TaskMetadataDTO> {
     this.tasks = tasks;
   }
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Name of the column.',
+  })
   @Expose({ name: 'name', toPlainOnly: true })
   @IsString()
   name: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Tasks in the column.',
+  })
   @Expose({ name: 'tasks', toPlainOnly: true })
-  @IsObject()
-  @IsArray()
   tasks: T[];
 }
 
-export const defaultKanbanColumns: ColumnDTO<TaskMetadataDTO>[] = [
-  new ColumnDTO<TaskMetadataDTO>('Backlog', []),
-  new ColumnDTO<TaskMetadataDTO>('To Do', []),
-  new ColumnDTO<TaskMetadataDTO>('In Progress', []),
-  new ColumnDTO<TaskMetadataDTO>('Done', []),
-];
+export const generateDefaultColumns = (
+  columnNames: string[],
+): ColumnDTO<TaskMetadataDTO>[] => {
+  return columnNames.map(
+    (columnName) => new ColumnDTO<TaskMetadataDTO>(columnName, []),
+  );
+};
 
-export const defaultScrumColumns: ColumnDTO<TaskMetadataDTO>[] = [
-  new ColumnDTO<TaskMetadataDTO>('To Do', []),
-  new ColumnDTO<TaskMetadataDTO>('In Progress', []),
-  new ColumnDTO<TaskMetadataDTO>('Done', []),
-];
+export const defaultKanbanColumns = generateDefaultColumns([
+  'Backlog',
+  'To Do',
+  'In Progress',
+  'Done',
+]);
+
+export const defaultScrumColumns = generateDefaultColumns([
+  'To Do',
+  'In Progress',
+  'Done',
+]);

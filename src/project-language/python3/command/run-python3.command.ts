@@ -5,17 +5,19 @@ import {
   Option,
 } from 'nest-commander';
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from 'src/config/config.service';
-import { Python3Service } from 'src/project-language/python3/python3.service';
-import { ProjectCommandOptionsDTO } from 'src/common/command/dto/project-command-options.dto';
+import { ConfigService } from '../../../config/config.service';
+import { Python3Service } from '../../../project-language/python3/python3.service';
+import { ProjectCommandOptionsDTO } from '../../../common/command/dto/project-command-options.dto';
 import {
   getProjectPath,
   getProjectCommandOptionsDTO,
-} from 'src/common/command/utils/common-command.utils';
+} from '../../../common/command/utils/common-command.utils';
 import {
   DEFAULT_GIT_PROVIDER,
-  GIT_PROVIDER_TYPES,
-} from 'src/common/constant/git.constant';
+  GIT_PROVIDER_TYPE_ARRAY,
+  PROJECT_LANGUAGE_TYPE_ARRAY,
+  PROJECT_TEMPLATE_TYPE_ARRAY,
+} from '../../../common/constant';
 
 @Injectable()
 @SubCommand({
@@ -28,7 +30,8 @@ export class RunPython3Command extends CommandRunner {
   constructor(
     private readonly inquirer: InquirerService,
     private readonly configService: ConfigService,
-    private readonly python3Service: Python3Service,) {
+    private readonly python3Service: Python3Service,
+  ) {
     super();
   }
 
@@ -51,7 +54,12 @@ export class RunPython3Command extends CommandRunner {
     const projectPath: string = getProjectPath(projectCommandOptionsDTO);
     console.log(`projectPath: ${projectPath}`);
 
-    this.python3Service.run(projectCommandOptionsDTO);
+    try {
+      await this.python3Service.run(projectCommandOptionsDTO);
+    } catch (error: any) {
+      this.logger.error(error.message);
+      this.logger.debug(error.stack);
+    }
   }
 
   @Option({
@@ -67,7 +75,7 @@ export class RunPython3Command extends CommandRunner {
     flags: '-g, --git-provider [gitProvider]',
     defaultValue: DEFAULT_GIT_PROVIDER,
     description: 'Your git provider',
-    choices: GIT_PROVIDER_TYPES,
+    choices: GIT_PROVIDER_TYPE_ARRAY,
   })
   parseGitProvider(val: string): string {
     return val;
@@ -77,7 +85,7 @@ export class RunPython3Command extends CommandRunner {
     flags: '-l, --project-language [projectLanguage]',
     defaultValue: 'python3',
     description: 'Your project language',
-    choices: ['go', 'python3', 'rust', 'typescript'],
+    choices: PROJECT_LANGUAGE_TYPE_ARRAY,
   })
   parseProjectLanguage(val: string): string {
     return val;
@@ -86,16 +94,7 @@ export class RunPython3Command extends CommandRunner {
   @Option({
     flags: '-t, --project-type [projectType]',
     description: 'Your project type',
-    choices: [
-      'service',
-      'cli',
-      'vscode-extension',
-      'web-app',
-      'browser-extension',
-      'mobile-app',
-      'desktop-app',
-      'algorithm',
-    ],
+    choices: PROJECT_TEMPLATE_TYPE_ARRAY,
   })
   parseProjectType(val: string): string {
     return val;

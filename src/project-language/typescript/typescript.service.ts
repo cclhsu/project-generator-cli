@@ -1,11 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as path from 'path';
-import { getProjectPath } from 'src/common/command/utils/common-command.utils';
-import { ProjectCommandOptionsDTO } from 'src/common/command/dto/project-command-options.dto';
+import { getProjectPath } from '../../common/command/utils/common-command.utils';
+import { ProjectCommandOptionsDTO } from '../../common/command/dto/project-command-options.dto';
 import {
   convertObjectValuesToString,
   copyTemplateFilesToProjectDir,
-} from 'src/utils/template/template.utils';
+} from '../../utils/template/template.utils';
 
 @Injectable()
 export class TypescriptService {

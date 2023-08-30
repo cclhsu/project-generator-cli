@@ -5,19 +5,19 @@ import {
   Option,
 } from 'nest-commander';
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from 'src/config/config.service';
+import { ConfigService } from '../../config/config.service';
 import { ProjectSuiteService } from '../project-suite.service';
 import { ProjectSuiteCommandOptionsDTO } from './dto/project-suite-command-options.dto';
 import { getProjectSuiteCommandOptionsDTO } from './project-suite-command.utils';
 import {
-  DEFAULT_PROJECT_SUITE_ROOT_PATH,
-  PROJECT_SUITE_TYPES,
-} from 'src/common/constant/project.constant';
-import {
   DEFAULT_GIT_PROVIDER,
-  GIT_PROVIDER_TYPES,
-} from 'src/common/constant/git.constant';
-import { DEFAULT_VARIABLE_FILE_PATH } from 'src/common/constant/common.constant';
+  DEFAULT_PROJECT_SUITE_ROOT_PATH,
+  DEFAULT_VARIABLE_FILE_PATH,
+  GIT_PROVIDER_TYPE_ARRAY,
+  PROJECT_LANGUAGE_TYPE_ARRAY,
+  PROJECT_SUITE_TYPE_ARRAY,
+  PROJECT_TEMPLATE_TYPE_ARRAY,
+} from '../../common/constant';
 
 @Injectable()
 @SubCommand({
@@ -51,9 +51,14 @@ export class GenerateProjectSuiteCommand extends CommandRunner {
         options,
       );
 
-    this.projectSuiteService.generateProjectSuite(
-      projectSuiteCommandOptionsDTO,
-    );
+    try {
+      await this.projectSuiteService.generateProjectSuite(
+        projectSuiteCommandOptionsDTO,
+      );
+    } catch (error: any) {
+      this.logger.error(error.message);
+      this.logger.debug(error.stack);
+    }
   }
 
   // @Option({
@@ -94,12 +99,12 @@ export class GenerateProjectSuiteCommand extends CommandRunner {
 
   @Option({
     flags: '-d, --project-suite-type [projectSuiteType]',
-    // defaultValue: PROJECT_SUITE_TYPES[0],
+    // defaultValue: PROJECT_SUITE_TYPE_ARRAY[0],
     description: 'Your project-suite type',
-    choices: PROJECT_SUITE_TYPES,
+    choices: PROJECT_SUITE_TYPE_ARRAY,
   })
   parseProjectSuiteType(val: string): string {
-    if (PROJECT_SUITE_TYPES.includes(val)) {
+    if (PROJECT_SUITE_TYPE_ARRAY.includes(val)) {
       return val;
     } else {
       throw new Error('Project-suite type is not valid');
@@ -119,7 +124,7 @@ export class GenerateProjectSuiteCommand extends CommandRunner {
     flags: '-g, --project-suite-git-provider [projectSuiteGitProvider]',
     defaultValue: DEFAULT_GIT_PROVIDER,
     description: 'Your project-suite git provider',
-    choices: GIT_PROVIDER_TYPES,
+    choices: GIT_PROVIDER_TYPE_ARRAY,
   })
   parseProjectSuiteGitProvider(val: string): string {
     return val;

@@ -1,12 +1,12 @@
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { v4 as uuidV4 } from 'uuid';
-import { CreateTaskRequestDTO } from '../dto/create-task-request.dto';
-import { UpdateTaskRequestDTO } from '../dto/update-task-request.dto';
+import { CreateTaskRequestDTO, TaskIdUuidStatusDTO } from '../dto';
+import { UpdateTaskRequestDTO } from '../dto';
 import { TaskEntity } from '../entity/task.entity';
 import { instanceToPlain, plainToInstance } from 'class-transformer';
 import { TaskMetadataEntity } from '../entity/task-metadata.entity';
 import { TaskContentEntity } from '../entity/task-content.entity';
-import { CommonDateEntity } from 'src/scrum/common/entity/common-date.entity';
+import { CommonDateEntity } from '../../../common/entity/common-date.entity';
 import { existsSync, mkdirSync, readFileSync } from 'fs';
 import {
   DEFAULT_DATABASE_STORAGE_DEVICE_TYPE,
@@ -17,10 +17,12 @@ import {
   DEFAULT_TASK_FILE_PATH,
   DEFAULT_TASK_PATH,
   STORAGE_DEVICE_TYPES,
-} from 'src/scrum/common/constant/repository.constant';
+} from '../../../common/constant';
 import { glob } from 'glob';
-import { createDirectory } from 'src/utils/directory/directory.utils';
-import { deleteFile } from 'src/utils/file/file.utils';
+import { createDirectory } from '../../../utils/directory/directory.utils';
+import { deleteFile } from '../../../utils/file/file.utils';
+import { TaskMetadataDTO, TaskContentDTO, TaskIdUuidDTO } from '../dto';
+import { ListIterationIdsAndUUIDsCommand } from '../../iteration/command/list-iteration-ids-uuids.command';
 
 @Injectable()
 export class TaskLocalRepository {
@@ -57,13 +59,21 @@ export class TaskLocalRepository {
     @Inject('ReadArrayFromCSV')
     private readonly readArrayFromCSV: <T>(filePath: string) => Promise<T[]>,
     @Inject('WriteArrayToCSV')
-    private readonly writeArrayToCSV: <T>(filePath: string, data: T[]) => void,
-    // @Inject('ReadArrayFromMarkdown')
-    // private readonly readArrayFromMarkdown: <T>(filePath: string) => Promise<T[]>,
-    // @Inject('WriteArrayToMarkdown')
-    // private readonly writeArrayToMarkdown: <T>(filePath: string, data: T[]) => void,
+    private readonly writeArrayToCSV: <T>(filePath: string, data: T[]) => void, // @Inject('ReadArrayFromMarkdown') // private readonly readArrayFromMarkdown: <T>(filePath: string) => Promise<T[]>, // @Inject('WriteArrayToMarkdown') // private readonly writeArrayToMarkdown: <T>(filePath: string, data: T[]) => void,
   ) {
     this.storageStrategy = this.getStorageStrategy();
+  }
+
+  // Get all task IDs, UUIDs and status
+  async ListTaskIdsUUIDsStatues(): Promise<TaskIdUuidStatusDTO[]> {
+    const storage: StorageStrategy = this.getStorageStrategy();
+    return storage.ListTaskIdsUUIDsStatues();
+  }
+
+  // Get all task IDs and UUIDs
+  async listTaskIdsAndUUIDs(): Promise<TaskIdUuidDTO[]> {
+    const storage: StorageStrategy = this.getStorageStrategy();
+    return storage.listTaskIdsAndUUIDs();
   }
 
   // Get all tasks
@@ -72,7 +82,7 @@ export class TaskLocalRepository {
     return storage.listTasks();
   }
 
-  // Get a task by ID
+  // Get a task by UUID
   async getTask(UUID: string): Promise<TaskEntity> {
     const storage: StorageStrategy = this.getStorageStrategy();
     return storage.getTask(UUID);
@@ -86,7 +96,7 @@ export class TaskLocalRepository {
     return storage.createTask(createTaskRequestDTO);
   }
 
-  // Update a task by ID
+  // Update a task by UUID
   async updateTask(
     UUID: string,
     updateTaskRequestDTO: UpdateTaskRequestDTO,
@@ -95,16 +105,52 @@ export class TaskLocalRepository {
     return storage.updateTask(UUID, updateTaskRequestDTO);
   }
 
-  // Delete a task by ID
+  // Delete a task by UUID
   async deleteTask(UUID: string): Promise<TaskEntity> {
     const storage: StorageStrategy = this.getStorageStrategy();
     return storage.deleteTask(UUID);
+  }
+
+  // Get a task by ID
+  async getTaskByID(ID: string): Promise<TaskEntity> {
+    const storage: StorageStrategy = this.getStorageStrategy();
+    return storage.getTaskByID(ID);
   }
 
   // Get a task by name
   async getTaskByName(name: string): Promise<TaskEntity> {
     const storage: StorageStrategy = this.getStorageStrategy();
     return storage.getTaskByName(name);
+  }
+
+  // Update a task metadata by UUID
+  async updateTaskMetadata(
+    UUID: string,
+    updatedMetadata: TaskMetadataDTO,
+  ): Promise<TaskMetadataDTO> {
+    const storage: StorageStrategy = this.getStorageStrategy();
+    return storage.updateTaskMetadata(UUID, updatedMetadata);
+  }
+
+  // Update a task content by UUID
+  async updateTaskContent(
+    UUID: string,
+    updatedContent: TaskContentDTO,
+  ): Promise<TaskContentDTO> {
+    const storage: StorageStrategy = this.getStorageStrategy();
+    return storage.updateTaskContent(UUID, updatedContent);
+  }
+
+  // Get a task metadata by UUID
+  async getTaskMetadata(UUID: string): Promise<TaskMetadataDTO> {
+    const storage: StorageStrategy = this.getStorageStrategy();
+    return storage.getTaskMetadata(UUID);
+  }
+
+  // Get a task content by UUID
+  async getTaskContent(UUID: string): Promise<TaskContentDTO> {
+    const storage: StorageStrategy = this.getStorageStrategy();
+    return storage.getTaskContent(UUID);
   }
 
   private getStorageStrategy(): StorageStrategy {
@@ -206,6 +252,8 @@ export class TaskLocalRepository {
 }
 
 interface StorageStrategy {
+  ListTaskIdsUUIDsStatues(): Promise<TaskIdUuidStatusDTO[]>;
+  listTaskIdsAndUUIDs(): Promise<TaskIdUuidDTO[]>;
   listTasks(): Promise<TaskEntity[]>;
   getTask(UUID: string): Promise<TaskEntity>;
   createTask(createTaskRequestDTO: CreateTaskRequestDTO): Promise<TaskEntity>;
@@ -214,16 +262,28 @@ interface StorageStrategy {
     updateTaskRequestDTO: UpdateTaskRequestDTO,
   ): Promise<TaskEntity>;
   deleteTask(UUID: string): Promise<TaskEntity>;
+  getTaskByID(ID: string): Promise<TaskEntity>;
   getTaskByName(name: string): Promise<TaskEntity>;
+  updateTaskMetadata(
+    uuid: string,
+    updatedMetadata: TaskMetadataDTO,
+  ): Promise<TaskMetadataDTO>;
+  updateTaskContent(
+    uuid: string,
+    updatedContent: TaskContentDTO,
+  ): Promise<TaskContentDTO>;
+  getTaskMetadata(uuid: string): Promise<TaskMetadataDTO>;
+  getTaskContent(uuid: string): Promise<TaskContentDTO>;
+  // searchTasks(query: string): Promise<TaskEntity[]>;
 }
 
 class MemoryStorage implements StorageStrategy {
   private readonly logger = new Logger(MemoryStorage.name);
   private tasks: TaskEntity[] = [
     // new TaskEntity(
+    //   'ABC-123',
     //   '00000000-0000-0000-0000-000000000001',
     //   new TaskMetadataEntity(
-    //     'ABC-123',
     //     'Task 1',
     //     new CommonDateEntity(
     //       new Date('2021-01-01T00:00:00.000Z'),
@@ -241,9 +301,9 @@ class MemoryStorage implements StorageStrategy {
     //   new TaskContentEntity(['john.doe', 'jane.doe'], 'john.doe', 'jane.doe'),
     // ),
     // new TaskEntity(
+    //   'XYZ-789',
     //   '00000000-0000-0000-0000-000000000002',
     //   new TaskMetadataEntity(
-    //     'XYZ-789',
     //     'Task 2',
     //     new CommonDateEntity(
     //       new Date('2021-01-01T00:00:00.000Z'),
@@ -261,6 +321,21 @@ class MemoryStorage implements StorageStrategy {
     //   new TaskContentEntity(['john.doe', 'jane.doe'], 'john.doe', 'jane.doe'),
     // ),
   ];
+
+  async ListTaskIdsUUIDsStatues(): Promise<TaskIdUuidStatusDTO[]> {
+    return this.tasks.map((task) => ({
+      ID: task.ID,
+      UUID: task.UUID,
+      status: task.metadata.status,
+    }));
+  }
+
+  async listTaskIdsAndUUIDs(): Promise<TaskIdUuidDTO[]> {
+    return this.tasks.map((task) => ({
+      ID: task.ID,
+      UUID: task.UUID,
+    }));
+  }
 
   async listTasks(): Promise<TaskEntity[]> {
     return this.tasks;
@@ -289,6 +364,7 @@ class MemoryStorage implements StorageStrategy {
       createTaskRequestDTO.content,
     );
     const newTask: TaskEntity = new TaskEntity(
+      createTaskRequestDTO.ID,
       newUUID,
       newTaskMetadata,
       newTaskContent,
@@ -314,6 +390,7 @@ class MemoryStorage implements StorageStrategy {
       ...updateTaskRequestDTO.content,
     };
     const updatedTask = new TaskEntity(
+      this.tasks[taskIndex].ID,
       UUID,
       updatedTaskMetadata,
       updatedTaskContent,
@@ -331,6 +408,16 @@ class MemoryStorage implements StorageStrategy {
     return deletedTask;
   }
 
+  async getTaskByID(ID: string): Promise<TaskEntity> {
+    const task: TaskEntity | undefined = this.tasks.find(
+      (task) => task.ID === ID,
+    );
+    if (!task) {
+      throw new NotFoundException(`Task ${ID} cannot be found`);
+    }
+    return task;
+  }
+
   async getTaskByName(name: string): Promise<TaskEntity> {
     const task: TaskEntity | undefined = this.tasks.find(
       (task) => task.metadata.name === name,
@@ -339,6 +426,75 @@ class MemoryStorage implements StorageStrategy {
       throw new NotFoundException(`Task ${name} cannot be found`);
     }
     return task;
+  }
+
+  // Update a task metadata by UUID
+  async updateTaskMetadata(
+    uuid: string,
+    updatedMetadata: TaskMetadataDTO,
+  ): Promise<TaskMetadataDTO> {
+    this.logger.log(`Task UUID: ${uuid} | Task Metadata: ${updatedMetadata}`);
+    const taskIndex = this.tasks.findIndex((task) => task.UUID === uuid);
+    if (taskIndex === -1) {
+      throw new NotFoundException(`Task ${uuid} cannot be found`);
+    }
+    const updatedTaskMetadata: TaskMetadataEntity = {
+      ...this.tasks[taskIndex].metadata,
+      ...instanceToPlain(updatedMetadata),
+    };
+    const updatedTask = new TaskEntity(
+      this.tasks[taskIndex].ID,
+      uuid,
+      updatedTaskMetadata,
+      this.tasks[taskIndex].content,
+    );
+    this.tasks[taskIndex] = updatedTask;
+    return updatedTask.metadata;
+  }
+
+  // Update a task content by UUID
+  async updateTaskContent(
+    uuid: string,
+    updatedContent: TaskContentDTO,
+  ): Promise<TaskContentDTO> {
+    this.logger.log(`Task UUID: ${uuid} | Task Content: ${updatedContent}`);
+    const taskIndex = this.tasks.findIndex((task) => task.UUID === uuid);
+    if (taskIndex === -1) {
+      throw new NotFoundException(`Task ${uuid} cannot be found`);
+    }
+    const updatedTaskContent: TaskContentEntity = {
+      ...this.tasks[taskIndex].content,
+      ...updatedContent,
+    };
+    this.tasks[taskIndex].metadata.dates.updatedAt = new Date();
+    const updatedTask = new TaskEntity(
+      this.tasks[taskIndex].ID,
+      uuid,
+      this.tasks[taskIndex].metadata,
+      updatedTaskContent,
+    );
+    this.tasks[taskIndex] = updatedTask;
+    return updatedTask.content;
+  }
+
+  // Get a task metadata by UUID
+  async getTaskMetadata(uuid: string): Promise<TaskMetadataDTO> {
+    this.logger.log(`Task UUID: ${uuid}`);
+    const taskIndex = this.tasks.findIndex((task) => task.UUID === uuid);
+    if (taskIndex === -1) {
+      throw new NotFoundException(`Task ${uuid} cannot be found`);
+    }
+    return this.tasks[taskIndex].metadata;
+  }
+
+  // Get a task content by UUID
+  async getTaskContent(uuid: string): Promise<TaskContentDTO> {
+    this.logger.log(`Task UUID: ${uuid}`);
+    const taskIndex = this.tasks.findIndex((task) => task.UUID === uuid);
+    if (taskIndex === -1) {
+      throw new NotFoundException(`Task ${uuid} cannot be found`);
+    }
+    return this.tasks[taskIndex].content;
   }
 }
 
@@ -349,6 +505,27 @@ class SingleJsonStorage implements StorageStrategy {
     private readonly readFromJSON: <T>(filePath: string) => Promise<T[]>,
     private readonly writeToJSON: <T>(filePath: string, data: T[]) => void,
   ) {}
+
+  async ListTaskIdsUUIDsStatues(): Promise<TaskIdUuidStatusDTO[]> {
+    const tasks: TaskEntity[] = await this.readFromJSON<TaskEntity>(
+      this.filePath,
+    );
+    return tasks.map((task) => ({
+      ID: task.ID,
+      UUID: task.UUID,
+      status: task.metadata.status,
+    }));
+  }
+
+  async listTaskIdsAndUUIDs(): Promise<TaskIdUuidDTO[]> {
+    const tasks: TaskEntity[] = await this.readFromJSON<TaskEntity>(
+      this.filePath,
+    );
+    return tasks.map((task) => ({
+      ID: task.ID,
+      UUID: task.UUID,
+    }));
+  }
 
   async listTasks(): Promise<TaskEntity[]> {
     return this.readFromJSON<TaskEntity>(this.filePath);
@@ -383,6 +560,7 @@ class SingleJsonStorage implements StorageStrategy {
       createTaskRequestDTO.content,
     );
     const newTask: TaskEntity = new TaskEntity(
+      createTaskRequestDTO.ID,
       newUUID,
       newTaskMetadata,
       newTaskContent,
@@ -412,6 +590,7 @@ class SingleJsonStorage implements StorageStrategy {
       ...updateTaskRequestDTO.content,
     };
     const updatedTask = new TaskEntity(
+      tasks[taskIndex].ID,
       UUID,
       updatedTaskMetadata,
       updatedTaskContent,
@@ -434,6 +613,17 @@ class SingleJsonStorage implements StorageStrategy {
     return deletedTask;
   }
 
+  async getTaskByID(ID: string): Promise<TaskEntity> {
+    const tasks: TaskEntity[] = await this.readFromJSON<TaskEntity>(
+      this.filePath,
+    );
+    const task: TaskEntity | undefined = tasks.find((task) => task.ID === ID);
+    if (!task) {
+      throw new NotFoundException(`Task ${ID} cannot be found`);
+    }
+    return task;
+  }
+
   async getTaskByName(name: string): Promise<TaskEntity> {
     const tasks: TaskEntity[] = await this.readFromJSON<TaskEntity>(
       this.filePath,
@@ -446,6 +636,89 @@ class SingleJsonStorage implements StorageStrategy {
     }
     return task;
   }
+
+  // Update a task metadata by UUID
+  async updateTaskMetadata(
+    uuid: string,
+    updatedMetadata: TaskMetadataDTO,
+  ): Promise<TaskMetadataDTO> {
+    this.logger.log(`Task UUID: ${uuid} | Task Metadata: ${updatedMetadata}`);
+    const tasks: TaskEntity[] = await this.readFromJSON<TaskEntity>(
+      this.filePath,
+    );
+    const taskIndex = tasks.findIndex((task) => task.UUID === uuid);
+    if (taskIndex === -1) {
+      throw new NotFoundException(`Task ${uuid} cannot be found`);
+    }
+    const updatedTaskMetadata: TaskMetadataEntity = {
+      ...tasks[taskIndex].metadata,
+      ...instanceToPlain(updatedMetadata),
+    };
+    const updatedTask = new TaskEntity(
+      tasks[taskIndex].ID,
+      uuid,
+      updatedTaskMetadata,
+      tasks[taskIndex].content,
+    );
+    tasks[taskIndex] = updatedTask;
+    this.writeToJSON(this.filePath, tasks);
+    return updatedTask.metadata;
+  }
+
+  // Update a task content by UUID
+  async updateTaskContent(
+    uuid: string,
+    updatedContent: TaskContentDTO,
+  ): Promise<TaskContentDTO> {
+    this.logger.log(`Task UUID: ${uuid} | Task Content: ${updatedContent}`);
+    const tasks: TaskEntity[] = await this.readFromJSON<TaskEntity>(
+      this.filePath,
+    );
+    const taskIndex = tasks.findIndex((task) => task.UUID === uuid);
+    if (taskIndex === -1) {
+      throw new NotFoundException(`Task ${uuid} cannot be found`);
+    }
+    const updatedTaskContent: TaskContentEntity = {
+      ...tasks[taskIndex].content,
+      ...updatedContent,
+    };
+    tasks[taskIndex].metadata.dates.updatedAt = new Date();
+    const updatedTask = new TaskEntity(
+      tasks[taskIndex].ID,
+      uuid,
+      tasks[taskIndex].metadata,
+      updatedTaskContent,
+    );
+    tasks[taskIndex] = updatedTask;
+    this.writeToJSON(this.filePath, tasks);
+    return updatedTask.content;
+  }
+
+  // Get a task metadata by UUID
+  async getTaskMetadata(uuid: string): Promise<TaskMetadataDTO> {
+    this.logger.log(`Task UUID: ${uuid}`);
+    const tasks: TaskEntity[] = await this.readFromJSON<TaskEntity>(
+      this.filePath,
+    );
+    const taskIndex = tasks.findIndex((task) => task.UUID === uuid);
+    if (taskIndex === -1) {
+      throw new NotFoundException(`Task ${uuid} cannot be found`);
+    }
+    return tasks[taskIndex].metadata;
+  }
+
+  // Get a task content by UUID
+  async getTaskContent(uuid: string): Promise<TaskContentDTO> {
+    this.logger.log(`Task UUID: ${uuid}`);
+    const tasks: TaskEntity[] = await this.readFromJSON<TaskEntity>(
+      this.filePath,
+    );
+    const taskIndex = tasks.findIndex((task) => task.UUID === uuid);
+    if (taskIndex === -1) {
+      throw new NotFoundException(`Task ${uuid} cannot be found`);
+    }
+    return tasks[taskIndex].content;
+  }
 }
 
 class MultipleJsonStorage implements StorageStrategy {
@@ -455,6 +728,45 @@ class MultipleJsonStorage implements StorageStrategy {
     private readonly readFromJSON: <T>(filePath: string) => Promise<T>,
     private readonly writeToJSON: <T>(filePath: string, data: T) => void,
   ) {}
+
+  async ListTaskIdsUUIDsStatues(): Promise<TaskIdUuidStatusDTO[]> {
+    const filesPath: string[] = glob.sync(
+      `${this.dirPath}/*.${DEFAULT_FILE_STORAGE_EXTENSION}`,
+    );
+    const tasks: TaskIdUuidStatusDTO[] = [];
+    for (const filePath of filesPath) {
+      if (existsSync(filePath)) {
+        const task: TaskEntity = await this.readFromJSON<TaskEntity>(filePath);
+        if (task) {
+          tasks.push({
+            ID: task.ID,
+            UUID: task.UUID,
+            status: task.metadata.status,
+          });
+        }
+      }
+    }
+    return tasks;
+  }
+
+  async listTaskIdsAndUUIDs(): Promise<TaskIdUuidDTO[]> {
+    const filesPath: string[] = glob.sync(
+      `${this.dirPath}/*.${DEFAULT_FILE_STORAGE_EXTENSION}`,
+    );
+    const tasks: TaskIdUuidDTO[] = [];
+    for (const filePath of filesPath) {
+      if (existsSync(filePath)) {
+        const task: TaskEntity = await this.readFromJSON<TaskEntity>(filePath);
+        if (task) {
+          tasks.push({
+            ID: task.ID,
+            UUID: task.UUID,
+          });
+        }
+      }
+    }
+    return tasks;
+  }
 
   async listTasks(): Promise<TaskEntity[]> {
     const filesPath: string[] = glob.sync(
@@ -494,6 +806,7 @@ class MultipleJsonStorage implements StorageStrategy {
       createTaskRequestDTO.content,
     );
     const newTask: TaskEntity = new TaskEntity(
+      createTaskRequestDTO.ID,
       newUUID,
       newTaskMetadata,
       newTaskContent,
@@ -522,6 +835,7 @@ class MultipleJsonStorage implements StorageStrategy {
         ...updateTaskRequestDTO.content,
       };
       const updatedTask = new TaskEntity(
+        task.ID,
         UUID,
         updatedTaskMetadata,
         updatedTaskContent,
@@ -550,19 +864,122 @@ class MultipleJsonStorage implements StorageStrategy {
     }
   }
 
+  async getTaskByID(ID: string): Promise<TaskEntity> {
+    const filesPath: string[] = glob.sync(
+      `${this.dirPath}/*.${DEFAULT_FILE_STORAGE_EXTENSION}`,
+    );
+    for (const filePath of filesPath) {
+      if (existsSync(filePath)) {
+        const task = await this.readFromJSON<TaskEntity>(filePath);
+        if (task.ID === ID) {
+          return task;
+        }
+      }
+    }
+    throw new NotFoundException(`Task ${name} cannot be found`);
+  }
+
   async getTaskByName(name: string): Promise<TaskEntity> {
     const filesPath: string[] = glob.sync(
       `${this.dirPath}/*.${DEFAULT_FILE_STORAGE_EXTENSION}`,
     );
     for (const filePath of filesPath) {
       if (existsSync(filePath)) {
-        const tasks = await this.readFromJSON<TaskEntity[]>(filePath);
-        const task = tasks.find((task) => task.metadata.name === name);
-        if (task) {
+        const task = await this.readFromJSON<TaskEntity>(filePath);
+        if (task.metadata.name === name) {
           return task;
         }
       }
     }
     throw new NotFoundException(`Task ${name} cannot be found`);
+  }
+
+  // Update a task metadata by UUID
+  async updateTaskMetadata(
+    uuid: string,
+    updatedMetadata: TaskMetadataDTO,
+  ): Promise<TaskMetadataDTO> {
+    this.logger.log(`Task UUID: ${uuid} | Task Metadata: ${updatedMetadata}`);
+    const filePath = `${this.dirPath}/${uuid}.${DEFAULT_FILE_STORAGE_EXTENSION}`;
+    if (existsSync(filePath)) {
+      const task: TaskEntity = await this.readFromJSON<TaskEntity>(filePath);
+      if (!task) {
+        throw new NotFoundException(`Task ${uuid} cannot be found`);
+      }
+      const updatedTaskMetadata: TaskMetadataEntity = {
+        ...task.metadata,
+        ...instanceToPlain(updatedMetadata),
+      };
+      const updatedTask = new TaskEntity(
+        task.ID,
+        uuid,
+        updatedTaskMetadata,
+        task.content,
+      );
+      this.writeToJSON(filePath, updatedTask);
+      return updatedTask.metadata;
+    } else {
+      throw new NotFoundException(`Task ${uuid} cannot be found`);
+    }
+  }
+
+  // Update a task content by UUID
+  async updateTaskContent(
+    uuid: string,
+    updatedContent: TaskContentDTO,
+  ): Promise<TaskContentDTO> {
+    this.logger.log(`Task UUID: ${uuid} | Task Content: ${updatedContent}`);
+    const filePath = `${this.dirPath}/${uuid}.${DEFAULT_FILE_STORAGE_EXTENSION}`;
+    if (existsSync(filePath)) {
+      const task: TaskEntity = await this.readFromJSON<TaskEntity>(filePath);
+      if (!task) {
+        throw new NotFoundException(`Task ${uuid} cannot be found`);
+      }
+      const updatedTaskContent: TaskContentEntity = {
+        ...task.content,
+        ...updatedContent,
+      };
+      task.metadata.dates.updatedAt = new Date();
+      const updatedTask = new TaskEntity(
+        task.ID,
+        uuid,
+        task.metadata,
+        updatedTaskContent,
+      );
+      this.writeToJSON(filePath, updatedTask);
+      return updatedTask.content;
+    } else {
+      throw new NotFoundException(`Task ${uuid} cannot be found`);
+    }
+  }
+
+  // Get a task metadata by UUID
+  async getTaskMetadata(uuid: string): Promise<TaskMetadataDTO> {
+    this.logger.log(`Task UUID: ${uuid}`);
+    const filePath = `${this.dirPath}/${uuid}.${DEFAULT_FILE_STORAGE_EXTENSION}`;
+    if (existsSync(filePath)) {
+      const task: TaskEntity = await this.readFromJSON<TaskEntity>(filePath);
+      if (!task) {
+        throw new NotFoundException(`Task ${uuid} cannot be found`);
+      }
+      return task.metadata;
+    } else {
+      throw new NotFoundException(`Task ${uuid} cannot be found`);
+    }
+  }
+
+  // Get a task content by UUID
+  async getTaskContent(uuid: string): Promise<TaskContentDTO> {
+    this.logger.log(`Task UUID: ${uuid}`);
+    const filePath = `${this.dirPath}/${uuid}.${DEFAULT_FILE_STORAGE_EXTENSION}`;
+    if (existsSync(filePath)) {
+      const task: TaskEntity = await this.readFromJSON<TaskEntity>(filePath);
+      if (!task) {
+        throw new NotFoundException(`Task ${uuid} cannot be found`);
+      }
+      return task.content;
+    } else {
+      throw new NotFoundException(`Task ${uuid} cannot be found`);
+    }
   }
 }

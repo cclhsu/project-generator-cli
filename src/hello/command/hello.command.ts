@@ -1,6 +1,6 @@
 import { Command, CommandRunner, Option } from 'nest-commander';
 import { Injectable, Logger } from '@nestjs/common';
-import { HelloService } from 'src/hello/hello.service';
+import { HelloService } from '../../hello/hello.service';
 
 interface HelloCommandOptions {
   string?: boolean;

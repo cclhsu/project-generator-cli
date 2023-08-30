@@ -5,12 +5,12 @@ import {
   Option,
 } from 'nest-commander';
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from 'src/config/config.service';
+import { ConfigService } from '../../config/config.service';
 import { DocumentService } from '../document.service';
 import { DocumentCommandOptionsDTO } from './dto/document-command-options.dto';
 import { DocumentVariablesFilePathAnswerDTO } from './dto/document-variables-file-path-answer.dto';
 import { DocumentVariablesFileNameAnswerDTO } from './dto/document-variables-file-name-answer.dto';
-import { DEFAULT_VARIABLE_FILE_PATH } from 'src/common/constant/common.constant';
+import { DEFAULT_VARIABLE_FILE_PATH } from '../../common/constant';
 
 @Injectable()
 @SubCommand({
@@ -69,7 +69,13 @@ export class GetDocumentVariablesTemplateCommand extends CommandRunner {
       ).documentVariablesFileName;
     }
 
-    this.documentService.getVariablesTemplate(documentCommandOptionsDTO);
+    try {
+      await this.documentService.getVariablesTemplate(
+        documentCommandOptionsDTO,
+      );
+    } catch (error: any) {
+      console.log(error.message);
+    }
   }
 
   // @Option({

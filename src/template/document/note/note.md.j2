@@ -44,9 +44,9 @@ cd "${PROJECT_DIR:?}/${APP_NAME}" || exit 1
 # Git commit changes
 DIRECTORIES_AND_FILES="db deploy doc src test README.md Makefile"
 TICKET_NUMBER=PPP-XXXX
-GIT_COMMIT_MESSAGE="Add ${DIRECTORIES_AND_FILES}"
+GIT_COMMIT_MESSAGE="chroe: Add ${DIRECTORIES_AND_FILES}"
 git add ${DIRECTORIES_AND_FILES}
-git commit -a -m "[PPP-XXXX] [${TICKET_NUMBER}] ${GIT_COMMIT_MESSAGE}"
+git commit -a -m "[${TICKET_NUMBER}] ${GIT_COMMIT_MESSAGE}"
 git status
 ```
 

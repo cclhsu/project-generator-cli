@@ -6,9 +6,9 @@ import {
 } from 'nest-commander';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '../config.service';
-import { ProjectCommonCommandOptionsDTO } from 'src/common/command/dto/project-common-command-options.dto';
+import { ProjectCommonCommandOptionsDTO } from '../../common/command/dto/project-common-command-options.dto';
 import { ConfirmDeleteAnswerDTO } from '../../common/command/dto/confirm-delete-answer.dto';
-import { getProjectName } from 'src/utils/project-name/project-name.utils';
+import { getProjectName } from '../../utils/project-name/project-name.utils';
 
 @Injectable()
 @SubCommand({
@@ -54,7 +54,11 @@ export class DeleteConfigCommand extends CommandRunner {
       return;
     }
 
-    this.configService.deleteConfig(packageProjectName);
+    try {
+      await this.configService.deleteConfig(packageProjectName);
+    } catch (error: any) {
+      console.log(error.message);
+    }
   }
 }
 

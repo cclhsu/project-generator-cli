@@ -1,12 +1,12 @@
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { v4 as uuidV4 } from 'uuid';
-import { CreateTeamRequestDTO } from '../dto/create-team-request.dto';
-import { UpdateTeamRequestDTO } from '../dto/update-team-request.dto';
+import { CreateTeamRequestDTO } from '../dto';
+import { UpdateTeamRequestDTO } from '../dto';
 import { TeamEntity } from '../entity/team.entity';
 import { instanceToPlain, plainToInstance } from 'class-transformer';
 import { TeamMetadataEntity } from '../entity/team-metadata.entity';
 import { TeamContentEntity } from '../entity/team-content.entity';
-import { CommonDateEntity } from 'src/scrum/common/entity/common-date.entity';
+import { CommonDateEntity } from '../../../common/entity/common-date.entity';
 import { existsSync, mkdirSync, readFileSync } from 'fs';
 import {
   DEFAULT_DATABASE_STORAGE_DEVICE_TYPE,
@@ -17,10 +17,11 @@ import {
   DEFAULT_TEAM_FILE_PATH,
   DEFAULT_TEAM_PATH,
   STORAGE_DEVICE_TYPES,
-} from 'src/scrum/common/constant/repository.constant';
+} from '../../../common/constant';
 import { glob } from 'glob';
-import { createDirectory } from 'src/utils/directory/directory.utils';
-import { deleteFile } from 'src/utils/file/file.utils';
+import { createDirectory } from '../../../utils/directory/directory.utils';
+import { deleteFile } from '../../../utils/file/file.utils';
+import { TeamMetadataDTO, TeamContentDTO, TeamIdUuidDTO } from '../dto';
 
 @Injectable()
 export class TeamLocalRepository {
@@ -57,13 +58,15 @@ export class TeamLocalRepository {
     @Inject('ReadArrayFromCSV')
     private readonly readArrayFromCSV: <T>(filePath: string) => Promise<T[]>,
     @Inject('WriteArrayToCSV')
-    private readonly writeArrayToCSV: <T>(filePath: string, data: T[]) => void,
-    // @Inject('ReadArrayFromMarkdown')
-    // private readonly readArrayFromMarkdown: <T>(filePath: string) => Promise<T[]>,
-    // @Inject('WriteArrayToMarkdown')
-    // private readonly writeArrayToMarkdown: <T>(filePath: string, data: T[]) => void,
+    private readonly writeArrayToCSV: <T>(filePath: string, data: T[]) => void, // @Inject('ReadArrayFromMarkdown') // private readonly readArrayFromMarkdown: <T>(filePath: string) => Promise<T[]>, // @Inject('WriteArrayToMarkdown') // private readonly writeArrayToMarkdown: <T>(filePath: string, data: T[]) => void,
   ) {
     this.storageStrategy = this.getStorageStrategy();
+  }
+
+  // Get all team IDs and UUIDs
+  async listTeamIdsAndUUIDs(): Promise<TeamIdUuidDTO[]> {
+    const storage: StorageStrategy = this.getStorageStrategy();
+    return storage.listTeamIdsAndUUIDs();
   }
 
   // Get all teams
@@ -72,7 +75,7 @@ export class TeamLocalRepository {
     return storage.listTeams();
   }
 
-  // Get a team by ID
+  // Get a team by UUID
   async getTeam(UUID: string): Promise<TeamEntity> {
     const storage: StorageStrategy = this.getStorageStrategy();
     return storage.getTeam(UUID);
@@ -86,7 +89,7 @@ export class TeamLocalRepository {
     return storage.createTeam(createTeamRequestDTO);
   }
 
-  // Update a team by ID
+  // Update a team by UUID
   async updateTeam(
     UUID: string,
     updateTeamRequestDTO: UpdateTeamRequestDTO,
@@ -95,16 +98,52 @@ export class TeamLocalRepository {
     return storage.updateTeam(UUID, updateTeamRequestDTO);
   }
 
-  // Delete a team by ID
+  // Delete a team by UUID
   async deleteTeam(UUID: string): Promise<TeamEntity> {
     const storage: StorageStrategy = this.getStorageStrategy();
     return storage.deleteTeam(UUID);
+  }
+
+  // Get a team by ID
+  async getTeamByID(ID: string): Promise<TeamEntity> {
+    const storage: StorageStrategy = this.getStorageStrategy();
+    return storage.getTeamByID(ID);
   }
 
   // Get a team by name
   async getTeamByName(name: string): Promise<TeamEntity> {
     const storage: StorageStrategy = this.getStorageStrategy();
     return storage.getTeamByName(name);
+  }
+
+  // Update a team metadata by UUID
+  async updateTeamMetadata(
+    UUID: string,
+    updatedMetadata: TeamMetadataDTO,
+  ): Promise<TeamMetadataDTO> {
+    const storage: StorageStrategy = this.getStorageStrategy();
+    return storage.updateTeamMetadata(UUID, updatedMetadata);
+  }
+
+  // Update a team content by UUID
+  async updateTeamContent(
+    UUID: string,
+    updatedContent: TeamContentDTO,
+  ): Promise<TeamContentDTO> {
+    const storage: StorageStrategy = this.getStorageStrategy();
+    return storage.updateTeamContent(UUID, updatedContent);
+  }
+
+  // Get a team metadata by UUID
+  async getTeamMetadata(UUID: string): Promise<TeamMetadataDTO> {
+    const storage: StorageStrategy = this.getStorageStrategy();
+    return storage.getTeamMetadata(UUID);
+  }
+
+  // Get a team content by UUID
+  async getTeamContent(UUID: string): Promise<TeamContentDTO> {
+    const storage: StorageStrategy = this.getStorageStrategy();
+    return storage.getTeamContent(UUID);
   }
 
   private getStorageStrategy(): StorageStrategy {
@@ -206,6 +245,7 @@ export class TeamLocalRepository {
 }
 
 interface StorageStrategy {
+  listTeamIdsAndUUIDs(): Promise<TeamIdUuidDTO[]>;
   listTeams(): Promise<TeamEntity[]>;
   getTeam(UUID: string): Promise<TeamEntity>;
   createTeam(createTeamRequestDTO: CreateTeamRequestDTO): Promise<TeamEntity>;
@@ -214,16 +254,28 @@ interface StorageStrategy {
     updateTeamRequestDTO: UpdateTeamRequestDTO,
   ): Promise<TeamEntity>;
   deleteTeam(UUID: string): Promise<TeamEntity>;
+  getTeamByID(ID: string): Promise<TeamEntity>;
   getTeamByName(name: string): Promise<TeamEntity>;
+  updateTeamMetadata(
+    uuid: string,
+    updatedMetadata: TeamMetadataDTO,
+  ): Promise<TeamMetadataDTO>;
+  updateTeamContent(
+    uuid: string,
+    updatedContent: TeamContentDTO,
+  ): Promise<TeamContentDTO>;
+  getTeamMetadata(uuid: string): Promise<TeamMetadataDTO>;
+  getTeamContent(uuid: string): Promise<TeamContentDTO>;
+  // searchTeams(query: string): Promise<TeamEntity[]>;
 }
 
 class MemoryStorage implements StorageStrategy {
   private readonly logger = new Logger(MemoryStorage.name);
   private teams: TeamEntity[] = [
     new TeamEntity(
+      'ABC-123',
       '00000000-0000-0000-0000-000000000001',
       new TeamMetadataEntity(
-        'ABC-123',
         'Team 1',
         new CommonDateEntity(
           new Date('2021-01-01T00:00:00.000Z'),
@@ -238,12 +290,31 @@ class MemoryStorage implements StorageStrategy {
           'john.doe',
         ),
       ),
-      new TeamContentEntity(['john.doe', 'jane.doe'], 'john.doe', 'jane.doe'),
+      new TeamContentEntity(
+        [
+          {
+            ID: 'john.doe',
+            UUID: '00000000-0000-0000-0000-000000000001',
+          },
+          {
+            ID: 'jane.doe',
+            UUID: '00000000-0000-0000-0000-000000000002',
+          },
+        ],
+        {
+          ID: 'john.doe',
+          UUID: '00000000-0000-0000-0000-000000000001',
+        },
+        {
+          ID: 'jane.doe',
+          UUID: '00000000-0000-0000-0000-000000000002',
+        },
+      ),
     ),
     new TeamEntity(
+      'XYZ-789',
       '00000000-0000-0000-0000-000000000002',
       new TeamMetadataEntity(
-        'XYZ-789',
         'Team 2',
         new CommonDateEntity(
           new Date('2021-01-01T00:00:00.000Z'),
@@ -258,9 +329,35 @@ class MemoryStorage implements StorageStrategy {
           'jane.doe',
         ),
       ),
-      new TeamContentEntity(['john.doe', 'jane.doe'], 'john.doe', 'jane.doe'),
+      new TeamContentEntity(
+        [
+          {
+            ID: 'john.doe',
+            UUID: '00000000-0000-0000-0000-000000000001',
+          },
+          {
+            ID: 'jane.doe',
+            UUID: '00000000-0000-0000-0000-000000000002',
+          },
+        ],
+        {
+          ID: 'john.doe',
+          UUID: '00000000-0000-0000-0000-000000000001',
+        },
+        {
+          ID: 'jane.doe',
+          UUID: '00000000-0000-0000-0000-000000000002',
+        },
+      ),
     ),
   ];
+
+  async listTeamIdsAndUUIDs(): Promise<TeamIdUuidDTO[]> {
+    return this.teams.map((team) => ({
+      ID: team.ID,
+      UUID: team.UUID,
+    }));
+  }
 
   async listTeams(): Promise<TeamEntity[]> {
     return this.teams;
@@ -289,6 +386,7 @@ class MemoryStorage implements StorageStrategy {
       createTeamRequestDTO.content,
     );
     const newTeam: TeamEntity = new TeamEntity(
+      createTeamRequestDTO.ID,
       newUUID,
       newTeamMetadata,
       newTeamContent,
@@ -314,6 +412,7 @@ class MemoryStorage implements StorageStrategy {
       ...updateTeamRequestDTO.content,
     };
     const updatedTeam = new TeamEntity(
+      this.teams[teamIndex].ID,
       UUID,
       updatedTeamMetadata,
       updatedTeamContent,
@@ -331,6 +430,16 @@ class MemoryStorage implements StorageStrategy {
     return deletedTeam;
   }
 
+  async getTeamByID(ID: string): Promise<TeamEntity> {
+    const team: TeamEntity | undefined = this.teams.find(
+      (team) => team.ID === ID,
+    );
+    if (!team) {
+      throw new NotFoundException(`Team ${ID} cannot be found`);
+    }
+    return team;
+  }
+
   async getTeamByName(name: string): Promise<TeamEntity> {
     const team: TeamEntity | undefined = this.teams.find(
       (team) => team.metadata.name === name,
@@ -339,6 +448,75 @@ class MemoryStorage implements StorageStrategy {
       throw new NotFoundException(`Team ${name} cannot be found`);
     }
     return team;
+  }
+
+  // Update a team metadata by UUID
+  async updateTeamMetadata(
+    uuid: string,
+    updatedMetadata: TeamMetadataDTO,
+  ): Promise<TeamMetadataDTO> {
+    this.logger.log(`Team UUID: ${uuid} | Team Metadata: ${updatedMetadata}`);
+    const teamIndex = this.teams.findIndex((team) => team.UUID === uuid);
+    if (teamIndex === -1) {
+      throw new NotFoundException(`Team ${uuid} cannot be found`);
+    }
+    const updatedTeamMetadata: TeamMetadataEntity = {
+      ...this.teams[teamIndex].metadata,
+      ...instanceToPlain(updatedMetadata),
+    };
+    const updatedTeam = new TeamEntity(
+      this.teams[teamIndex].ID,
+      uuid,
+      updatedTeamMetadata,
+      this.teams[teamIndex].content,
+    );
+    this.teams[teamIndex] = updatedTeam;
+    return updatedTeam.metadata;
+  }
+
+  // Update a team content by UUID
+  async updateTeamContent(
+    uuid: string,
+    updatedContent: TeamContentDTO,
+  ): Promise<TeamContentDTO> {
+    this.logger.log(`Team UUID: ${uuid} | Team Content: ${updatedContent}`);
+    const teamIndex = this.teams.findIndex((team) => team.UUID === uuid);
+    if (teamIndex === -1) {
+      throw new NotFoundException(`Team ${uuid} cannot be found`);
+    }
+    const updatedTeamContent: TeamContentEntity = {
+      ...this.teams[teamIndex].content,
+      ...updatedContent,
+    };
+    this.teams[teamIndex].metadata.dates.updatedAt = new Date();
+    const updatedTeam = new TeamEntity(
+      this.teams[teamIndex].ID,
+      uuid,
+      this.teams[teamIndex].metadata,
+      updatedTeamContent,
+    );
+    this.teams[teamIndex] = updatedTeam;
+    return updatedTeam.content;
+  }
+
+  // Get a team metadata by UUID
+  async getTeamMetadata(uuid: string): Promise<TeamMetadataDTO> {
+    this.logger.log(`Team UUID: ${uuid}`);
+    const teamIndex = this.teams.findIndex((team) => team.UUID === uuid);
+    if (teamIndex === -1) {
+      throw new NotFoundException(`Team ${uuid} cannot be found`);
+    }
+    return this.teams[teamIndex].metadata;
+  }
+
+  // Get a team content by UUID
+  async getTeamContent(uuid: string): Promise<TeamContentDTO> {
+    this.logger.log(`Team UUID: ${uuid}`);
+    const teamIndex = this.teams.findIndex((team) => team.UUID === uuid);
+    if (teamIndex === -1) {
+      throw new NotFoundException(`Team ${uuid} cannot be found`);
+    }
+    return this.teams[teamIndex].content;
   }
 }
 
@@ -349,6 +527,16 @@ class SingleJsonStorage implements StorageStrategy {
     private readonly readFromJSON: <T>(filePath: string) => Promise<T[]>,
     private readonly writeToJSON: <T>(filePath: string, data: T[]) => void,
   ) {}
+
+  async listTeamIdsAndUUIDs(): Promise<TeamIdUuidDTO[]> {
+    const teams: TeamEntity[] = await this.readFromJSON<TeamEntity>(
+      this.filePath,
+    );
+    return teams.map((team) => ({
+      ID: team.ID,
+      UUID: team.UUID,
+    }));
+  }
 
   async listTeams(): Promise<TeamEntity[]> {
     return this.readFromJSON<TeamEntity>(this.filePath);
@@ -383,6 +571,7 @@ class SingleJsonStorage implements StorageStrategy {
       createTeamRequestDTO.content,
     );
     const newTeam: TeamEntity = new TeamEntity(
+      createTeamRequestDTO.ID,
       newUUID,
       newTeamMetadata,
       newTeamContent,
@@ -412,6 +601,7 @@ class SingleJsonStorage implements StorageStrategy {
       ...updateTeamRequestDTO.content,
     };
     const updatedTeam = new TeamEntity(
+      teams[teamIndex].ID,
       UUID,
       updatedTeamMetadata,
       updatedTeamContent,
@@ -434,6 +624,17 @@ class SingleJsonStorage implements StorageStrategy {
     return deletedTeam;
   }
 
+  async getTeamByID(ID: string): Promise<TeamEntity> {
+    const teams: TeamEntity[] = await this.readFromJSON<TeamEntity>(
+      this.filePath,
+    );
+    const team: TeamEntity | undefined = teams.find((team) => team.ID === ID);
+    if (!team) {
+      throw new NotFoundException(`Team ${ID} cannot be found`);
+    }
+    return team;
+  }
+
   async getTeamByName(name: string): Promise<TeamEntity> {
     const teams: TeamEntity[] = await this.readFromJSON<TeamEntity>(
       this.filePath,
@@ -446,6 +647,89 @@ class SingleJsonStorage implements StorageStrategy {
     }
     return team;
   }
+
+  // Update a team metadata by UUID
+  async updateTeamMetadata(
+    uuid: string,
+    updatedMetadata: TeamMetadataDTO,
+  ): Promise<TeamMetadataDTO> {
+    this.logger.log(`Team UUID: ${uuid} | Team Metadata: ${updatedMetadata}`);
+    const teams: TeamEntity[] = await this.readFromJSON<TeamEntity>(
+      this.filePath,
+    );
+    const teamIndex = teams.findIndex((team) => team.UUID === uuid);
+    if (teamIndex === -1) {
+      throw new NotFoundException(`Team ${uuid} cannot be found`);
+    }
+    const updatedTeamMetadata: TeamMetadataEntity = {
+      ...teams[teamIndex].metadata,
+      ...instanceToPlain(updatedMetadata),
+    };
+    const updatedTeam = new TeamEntity(
+      teams[teamIndex].ID,
+      uuid,
+      updatedTeamMetadata,
+      teams[teamIndex].content,
+    );
+    teams[teamIndex] = updatedTeam;
+    this.writeToJSON(this.filePath, teams);
+    return updatedTeam.metadata;
+  }
+
+  // Update a team content by UUID
+  async updateTeamContent(
+    uuid: string,
+    updatedContent: TeamContentDTO,
+  ): Promise<TeamContentDTO> {
+    this.logger.log(`Team UUID: ${uuid} | Team Content: ${updatedContent}`);
+    const teams: TeamEntity[] = await this.readFromJSON<TeamEntity>(
+      this.filePath,
+    );
+    const teamIndex = teams.findIndex((team) => team.UUID === uuid);
+    if (teamIndex === -1) {
+      throw new NotFoundException(`Team ${uuid} cannot be found`);
+    }
+    const updatedTeamContent: TeamContentEntity = {
+      ...teams[teamIndex].content,
+      ...updatedContent,
+    };
+    teams[teamIndex].metadata.dates.updatedAt = new Date();
+    const updatedTeam = new TeamEntity(
+      teams[teamIndex].ID,
+      uuid,
+      teams[teamIndex].metadata,
+      updatedTeamContent,
+    );
+    teams[teamIndex] = updatedTeam;
+    this.writeToJSON(this.filePath, teams);
+    return updatedTeam.content;
+  }
+
+  // Get a team metadata by UUID
+  async getTeamMetadata(uuid: string): Promise<TeamMetadataDTO> {
+    this.logger.log(`Team UUID: ${uuid}`);
+    const teams: TeamEntity[] = await this.readFromJSON<TeamEntity>(
+      this.filePath,
+    );
+    const teamIndex = teams.findIndex((team) => team.UUID === uuid);
+    if (teamIndex === -1) {
+      throw new NotFoundException(`Team ${uuid} cannot be found`);
+    }
+    return teams[teamIndex].metadata;
+  }
+
+  // Get a team content by UUID
+  async getTeamContent(uuid: string): Promise<TeamContentDTO> {
+    this.logger.log(`Team UUID: ${uuid}`);
+    const teams: TeamEntity[] = await this.readFromJSON<TeamEntity>(
+      this.filePath,
+    );
+    const teamIndex = teams.findIndex((team) => team.UUID === uuid);
+    if (teamIndex === -1) {
+      throw new NotFoundException(`Team ${uuid} cannot be found`);
+    }
+    return teams[teamIndex].content;
+  }
 }
 
 class MultipleJsonStorage implements StorageStrategy {
@@ -455,6 +739,25 @@ class MultipleJsonStorage implements StorageStrategy {
     private readonly readFromJSON: <T>(filePath: string) => Promise<T>,
     private readonly writeToJSON: <T>(filePath: string, data: T) => void,
   ) {}
+
+  async listTeamIdsAndUUIDs(): Promise<TeamIdUuidDTO[]> {
+    const filesPath: string[] = glob.sync(
+      `${this.dirPath}/*.${DEFAULT_FILE_STORAGE_EXTENSION}`,
+    );
+    const teams: TeamEntity[] = [];
+    for (const filePath of filesPath) {
+      if (existsSync(filePath)) {
+        const team: TeamEntity = await this.readFromJSON<TeamEntity>(filePath);
+        if (team) {
+          teams.push(team);
+        }
+      }
+    }
+    return teams.map((team) => ({
+      ID: team.ID,
+      UUID: team.UUID,
+    }));
+  }
 
   async listTeams(): Promise<TeamEntity[]> {
     const filesPath: string[] = glob.sync(
@@ -494,6 +797,7 @@ class MultipleJsonStorage implements StorageStrategy {
       createTeamRequestDTO.content,
     );
     const newTeam: TeamEntity = new TeamEntity(
+      createTeamRequestDTO.ID,
       newUUID,
       newTeamMetadata,
       newTeamContent,
@@ -522,6 +826,7 @@ class MultipleJsonStorage implements StorageStrategy {
         ...updateTeamRequestDTO.content,
       };
       const updatedTeam = new TeamEntity(
+        team.ID,
         UUID,
         updatedTeamMetadata,
         updatedTeamContent,
@@ -550,19 +855,122 @@ class MultipleJsonStorage implements StorageStrategy {
     }
   }
 
+  async getTeamByID(ID: string): Promise<TeamEntity> {
+    const filesPath: string[] = glob.sync(
+      `${this.dirPath}/*.${DEFAULT_FILE_STORAGE_EXTENSION}`,
+    );
+    for (const filePath of filesPath) {
+      if (existsSync(filePath)) {
+        const team = await this.readFromJSON<TeamEntity>(filePath);
+        if (team.ID === ID) {
+          return team;
+        }
+      }
+    }
+    throw new NotFoundException(`Team ${ID} cannot be found`);
+  }
+
   async getTeamByName(name: string): Promise<TeamEntity> {
     const filesPath: string[] = glob.sync(
       `${this.dirPath}/*.${DEFAULT_FILE_STORAGE_EXTENSION}`,
     );
     for (const filePath of filesPath) {
       if (existsSync(filePath)) {
-        const teams = await this.readFromJSON<TeamEntity[]>(filePath);
-        const team = teams.find((team) => team.metadata.name === name);
-        if (team) {
+        const team: TeamEntity = await this.readFromJSON<TeamEntity>(filePath);
+        if (team.metadata.name === name) {
           return team;
         }
       }
     }
     throw new NotFoundException(`Team ${name} cannot be found`);
+  }
+
+  // Update a team metadata by UUID
+  async updateTeamMetadata(
+    uuid: string,
+    updatedMetadata: TeamMetadataDTO,
+  ): Promise<TeamMetadataDTO> {
+    this.logger.log(`Team UUID: ${uuid} | Team Metadata: ${updatedMetadata}`);
+    const filePath = `${this.dirPath}/${uuid}.${DEFAULT_FILE_STORAGE_EXTENSION}`;
+    if (existsSync(filePath)) {
+      const team: TeamEntity = await this.readFromJSON<TeamEntity>(filePath);
+      if (!team) {
+        throw new NotFoundException(`Team ${uuid} cannot be found`);
+      }
+      const updatedTeamMetadata: TeamMetadataEntity = {
+        ...team.metadata,
+        ...instanceToPlain(updatedMetadata),
+      };
+      const updatedTeam = new TeamEntity(
+        team.ID,
+        uuid,
+        updatedTeamMetadata,
+        team.content,
+      );
+      this.writeToJSON(filePath, updatedTeam);
+      return updatedTeam.metadata;
+    } else {
+      throw new NotFoundException(`Team ${uuid} cannot be found`);
+    }
+  }
+
+  // Update a team content by UUID
+  async updateTeamContent(
+    uuid: string,
+    updatedContent: TeamContentDTO,
+  ): Promise<TeamContentDTO> {
+    this.logger.log(`Team UUID: ${uuid} | Team Content: ${updatedContent}`);
+    const filePath = `${this.dirPath}/${uuid}.${DEFAULT_FILE_STORAGE_EXTENSION}`;
+    if (existsSync(filePath)) {
+      const team: TeamEntity = await this.readFromJSON<TeamEntity>(filePath);
+      if (!team) {
+        throw new NotFoundException(`Team ${uuid} cannot be found`);
+      }
+      const updatedTeamContent: TeamContentEntity = {
+        ...team.content,
+        ...updatedContent,
+      };
+      team.metadata.dates.updatedAt = new Date();
+      const updatedTeam = new TeamEntity(
+        team.ID,
+        uuid,
+        team.metadata,
+        updatedTeamContent,
+      );
+      this.writeToJSON(filePath, updatedTeam);
+      return updatedTeam.content;
+    } else {
+      throw new NotFoundException(`Team ${uuid} cannot be found`);
+    }
+  }
+
+  // Get a team metadata by UUID
+  async getTeamMetadata(uuid: string): Promise<TeamMetadataDTO> {
+    this.logger.log(`Team UUID: ${uuid}`);
+    const filePath = `${this.dirPath}/${uuid}.${DEFAULT_FILE_STORAGE_EXTENSION}`;
+    if (existsSync(filePath)) {
+      const team: TeamEntity = await this.readFromJSON<TeamEntity>(filePath);
+      if (!team) {
+        throw new NotFoundException(`Team ${uuid} cannot be found`);
+      }
+      return team.metadata;
+    } else {
+      throw new NotFoundException(`Team ${uuid} cannot be found`);
+    }
+  }
+
+  // Get a team content by UUID
+  async getTeamContent(uuid: string): Promise<TeamContentDTO> {
+    this.logger.log(`Team UUID: ${uuid}`);
+    const filePath = `${this.dirPath}/${uuid}.${DEFAULT_FILE_STORAGE_EXTENSION}`;
+    if (existsSync(filePath)) {
+      const team: TeamEntity = await this.readFromJSON<TeamEntity>(filePath);
+      if (!team) {
+        throw new NotFoundException(`Team ${uuid} cannot be found`);
+      }
+      return team.content;
+    } else {
+      throw new NotFoundException(`Team ${uuid} cannot be found`);
+    }
   }
 }

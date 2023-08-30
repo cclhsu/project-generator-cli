@@ -1,12 +1,15 @@
 import { Command, CommandRunner, InquirerService } from 'nest-commander';
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from 'src/config/config.service';
+import { ConfigService } from '../../../config/config.service';
 import { MetricService } from '../metric.service';
 import { ListMetricsCommand } from './list-metrics.command';
 import { GetMetricCommand } from './get-metric.command';
 import { CreateMetricCommand } from './create-metric.command';
 import { UpdateMetricCommand } from './update-metric.command';
 import { DeleteMetricCommand } from './delete-metric.command';
+import { UpdateMetricMetadataCommand } from './update-metric-metadata.command';
+import { UpdateMetricContentCommand } from './update-metric-content.command';
+import { ListMetricIdsAndUUIDsCommand } from './list-metric-ids-uuids.command';
 
 @Injectable()
 @Command({
@@ -19,6 +22,9 @@ import { DeleteMetricCommand } from './delete-metric.command';
     CreateMetricCommand,
     UpdateMetricCommand,
     DeleteMetricCommand,
+    UpdateMetricMetadataCommand,
+    UpdateMetricContentCommand,
+    ListMetricIdsAndUUIDsCommand,
   ],
 })
 export class MetricCommand extends CommandRunner {

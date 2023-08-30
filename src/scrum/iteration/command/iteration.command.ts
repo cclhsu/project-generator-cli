@@ -1,12 +1,16 @@
 import { Command, CommandRunner, InquirerService } from 'nest-commander';
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from 'src/config/config.service';
+import { ConfigService } from '../../../config/config.service';
 import { IterationService } from '../iteration.service';
 import { ListIterationsCommand } from './list-iterations.command';
 import { CreateIterationCommand } from './create-iteration.command';
 import { DeleteIterationCommand } from './delete-iteration.command';
 import { GetIterationCommand } from './get-iteration.command';
 import { UpdateIterationCommand } from './update-iteration.command';
+import { UpdateIterationMetadataCommand } from './update-iteration-metadata.command';
+import { UpdateIterationContentCommand } from './update-iteration-content.command';
+import { ListIterationIdsAndUUIDsCommand } from './list-iteration-ids-uuids.command';
+import { ListIterationIdsUUIDsStatusesCommand } from './list-iteration-ids-uuids-statuses.command';
 
 @Injectable()
 @Command({
@@ -19,6 +23,10 @@ import { UpdateIterationCommand } from './update-iteration.command';
     CreateIterationCommand,
     UpdateIterationCommand,
     DeleteIterationCommand,
+    UpdateIterationMetadataCommand,
+    UpdateIterationContentCommand,
+    ListIterationIdsAndUUIDsCommand,
+    ListIterationIdsUUIDsStatusesCommand,
   ],
 })
 export class IterationCommand extends CommandRunner {

@@ -3,7 +3,7 @@ import {
   ApiOperation,
   ApiProduces,
   ApiResponse,
-  ApiTags
+  ApiTags,
 } from '@nestjs/swagger';
 import { HelloJsonResponseDTO } from './dto/hello-json-response.dto';
 import { HelloStringResponseDTO } from './dto/hello-string-response.dto';

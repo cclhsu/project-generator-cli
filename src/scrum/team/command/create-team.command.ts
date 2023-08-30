@@ -6,17 +6,43 @@ import {
 } from 'nest-commander';
 import { Injectable, Logger } from '@nestjs/common';
 import { TeamService } from '../team.service';
-import { CreateTeamRequestDTO } from '../dto/create-team-request.dto';
-import { TeamCommandOptionsDTO } from './dto/team-command-options.dto';
-import { TeamMetadataCommandOptionsDTO } from './dto/team-metadata-command-options.dto';
-import { TeamContentCommandOptionsDTO } from './dto/team-content-command-options.dto';
-import { UuidAnswerDTO } from '../../common/command/dto/uuid-answer.dto';
-import { IdAnswerDTO } from '../../common/command/dto/id-answer.dto';
-import { NameAnswerDTO } from '../../common/command/dto/name-answer.dto';
-import { getCommonDateCommandOptionsDTO } from '../../common/command/utils/common-date-command.utils';
-import { MembersAnswerDTO } from 'src/scrum/common/command/dto/members-answer.dto';
-import { ProductOwnerAnswerDTO } from 'src/scrum/common/command/dto/product-owner-answer.dto';
-import { ScrumMasterAnswerDTO } from 'src/scrum/common/command/dto/scrum-master-answer.dto';
+import { CreateTeamRequestDTO } from '../dto';
+import { getCommonDateDTO } from '../../../common/command/utils/common-date-command.utils';
+import { validate } from 'class-validator';
+import { TeamDTO, TeamContentDTO, TeamMetadataDTO } from '../dto';
+import {
+  IdAnswerDTO,
+  MembersAnswerDTO,
+  ProductOwnerAnswerDTO,
+  ScrumMasterAnswerDTO,
+  TeamIdAnswerDTO,
+  TeamNameAnswerDTO,
+  UuidAnswerDTO,
+} from '../../../common/command/dto';
+import {
+  isValidUserId,
+  isValidUuid,
+  isValidUuids,
+  validateCompletedAt,
+  validateCreatedAt,
+  validateEndDate,
+  validateStartDate,
+  validateStartedAt,
+  validateTeamId,
+  validateTeamName,
+  validateUpdatedAt,
+  validateUserId,
+  validateUuid,
+} from '../../../common/command/validation';
+import {
+  convertStringToIdUuidArray,
+  isValidIdUuidArray,
+} from '../../../utils/array';
+import { IdUuidDTO } from '../../../common/dto/id-uuid.dto';
+import {
+  convertStringToIdUuidDTO,
+  validateIdUuid,
+} from '../../../common/command/validation/id-uuid.validation';
 
 @Injectable()
 @SubCommand({
@@ -37,62 +63,74 @@ export class CreateTeamCommand extends CommandRunner {
     options?: Record<string, any> | undefined,
   ): Promise<void> {
     this.logger.debug('>>> Creating team');
-    // this.logger.debug(passedParams);
-    // this.logger.debug(options);
+    // this.logger.verbose('passedParam: ' + JSON.stringify(passedParams, null, 2));
+    // this.logger.verbose('options: ' + JSON.stringify(options, null, 2));
 
-    const teamMetadataCommandOptions: TeamMetadataCommandOptionsDTO = {
-      ID: options?.id ?? '',
+    const teamMetadata: TeamMetadataDTO = {
       name: options?.name ?? '',
       dates: options?.dates ?? undefined,
     };
-    const TeamContentCommandOptions: TeamContentCommandOptionsDTO = {
+    const TeamContent: TeamContentDTO = {
       members: options?.members ?? [],
       productOwner: options?.productOwner ?? '',
       scrumMaster: options?.scrumMaster ?? '',
     };
-    const teamCommandOptions: TeamCommandOptionsDTO = {
+    const team: TeamDTO = {
+      ID: options?.id ?? '',
       UUID: options?.uuid ?? '00000000-0000-0000-0000-000000000000',
-      metadata: teamMetadataCommandOptions,
-      content: TeamContentCommandOptions,
+      metadata: teamMetadata,
+      content: TeamContent,
       // ...options,
     };
 
-    // while (!teamCommandOptions.UUID) {
-    //   teamCommandOptions.UUID = (
+    // ********************************************************************
+
+    while (!team.ID) {
+      team.ID = (
+        await this.inquirer.ask<TeamIdAnswerDTO>('team-id-questions', options)
+      ).ID;
+    }
+
+    // while (!team.UUID) {
+    //   team.UUID = (
     //     await this.inquirer.ask<UuidAnswerDTO>('uuid-questions', options)
     //   ).UUID;
     // }
 
-    while (!teamCommandOptions.metadata.ID) {
-      teamCommandOptions.metadata.ID = (
-        await this.inquirer.ask<IdAnswerDTO>('id-questions', options)
-      ).ID;
-    }
+    // ********************************************************************
+    // Update Metadata
 
-    while (!teamCommandOptions.metadata.name) {
-      teamCommandOptions.metadata.name = (
-        await this.inquirer.ask<NameAnswerDTO>('name-questions', options)
-      ).name;
+    while (!team.metadata.name) {
+      team.metadata.name = (
+        await this.inquirer.ask<TeamNameAnswerDTO>(
+          'team-name-questions',
+          options,
+        )
+      ).teamName;
     }
 
     // ********************************************************************
+    // Update Dates
 
-    teamCommandOptions.metadata.dates = await getCommonDateCommandOptionsDTO(
+    team.metadata.dates = await getCommonDateDTO(
       // this.configService,
       this.inquirer,
       options,
     );
 
     // ********************************************************************
+    // Update Content
 
-    while (teamCommandOptions.content.members.length === 0) {
-      teamCommandOptions.content.members = (
+    this.logger.verbose(JSON.stringify(team, null, 2));
+
+    while (team.content.members.length === 0) {
+      team.content.members = (
         await this.inquirer.ask<MembersAnswerDTO>('members-questions', options)
       ).members;
     }
 
-    while (!teamCommandOptions.content.productOwner) {
-      teamCommandOptions.content.productOwner = (
+    while (!team.content.productOwner) {
+      team.content.productOwner = (
         await this.inquirer.ask<ProductOwnerAnswerDTO>(
           'product-owner-questions',
           options,
@@ -100,8 +138,8 @@ export class CreateTeamCommand extends CommandRunner {
       ).productOwner;
     }
 
-    while (!teamCommandOptions.content.scrumMaster) {
-      teamCommandOptions.content.scrumMaster = (
+    while (!team.content.scrumMaster) {
+      team.content.scrumMaster = (
         await this.inquirer.ask<ScrumMasterAnswerDTO>(
           'scrum-master-questions',
           options,
@@ -109,26 +147,41 @@ export class CreateTeamCommand extends CommandRunner {
       ).scrumMaster;
     }
 
-    console.log(teamCommandOptions);
+    this.logger.verbose(JSON.stringify(team, null, 2));
 
     // ********************************************************************
 
     const createTeamRequestDTO: CreateTeamRequestDTO = {
-      UUID: teamCommandOptions.UUID,
-      metadata: new TeamMetadataCommandOptionsDTO(
-        teamCommandOptions.metadata.ID,
-        teamCommandOptions.metadata.name,
-        teamCommandOptions.metadata.dates,
-      ),
-      content: new TeamContentCommandOptionsDTO(
-        teamCommandOptions.content.members,
-        teamCommandOptions.content.productOwner,
-        teamCommandOptions.content.scrumMaster,
+      ID: team.ID,
+      UUID: team.UUID,
+      metadata: new TeamMetadataDTO(team.metadata.name, team.metadata.dates),
+      content: new TeamContentDTO(
+        team.content.members,
+        team.content.productOwner,
+        team.content.scrumMaster,
       ),
     };
 
-    console.log(createTeamRequestDTO);
-    this.teamService.createTeam(createTeamRequestDTO);
+    try {
+      this.logger.verbose(JSON.stringify(createTeamRequestDTO, null, 2));
+      await this.teamService.createTeam(createTeamRequestDTO);
+    } catch (error: any) {
+      this.logger.error(error.message);
+      this.logger.debug(error.stack);
+    }
+  }
+
+  @Option({
+    flags: '-i, --id [id]',
+    description: 'The id of the team',
+    // defaultValue: 'PPP-0000',
+  })
+  parseId(val: string): string {
+    const res = validateTeamId(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   // @Option({
@@ -137,17 +190,15 @@ export class CreateTeamCommand extends CommandRunner {
   //   // defaultValue: '00000000-0000-0000-0000-000000000000',
   // })
   // parseUUID(val: string): string {
-  //   return val;
+  //   const res = validateUuid(val);
+  //   if (res === true) {
+  //     return val;
+  //   }
+  //   throw new Error(res + ': ' + val + '\n');
   // }
 
-  @Option({
-    flags: '-i, --id [id]',
-    description: 'The id of the team',
-    // defaultValue: 'PPP-0000',
-  })
-  parseId(val: string): string {
-    return val;
-  }
+  // ********************************************************************
+  // Update Metadata
 
   @Option({
     flags: '-n, --name [name]',
@@ -155,10 +206,15 @@ export class CreateTeamCommand extends CommandRunner {
     // defaultValue: 'default-team-name',
   })
   parseName(val: string): string {
-    return val;
+    const res = validateTeamName(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   // ********************************************************************
+  // Update Dates
 
   @Option({
     flags: '-c, --createdBy [createdBy]',
@@ -166,16 +222,24 @@ export class CreateTeamCommand extends CommandRunner {
     // defaultValue: 'default-created-by',
   })
   parseCreatedBy(val: string): string {
-    return val;
+    const res = validateUserId(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   @Option({
-    flags: '-d, --createdDate [createdDate]',
+    flags: '-d, --createdAt [createdAt]',
     description: 'The date when the team was created',
     // defaultValue: 'default-created-date',
   })
-  parseCreatedDate(val: string): string {
-    return val;
+  parseCreatedAt(val: string): string {
+    const res = validateCreatedAt(val);
+    if (res === true) {
+      return new Date(val).toISOString();
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   @Option({
@@ -184,16 +248,24 @@ export class CreateTeamCommand extends CommandRunner {
     // defaultValue: 'default-updated-by',
   })
   parseUpdatedBy(val: string): string {
-    return val;
+    const res = validateUserId(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   @Option({
-    flags: '-e, --updatedDate [updatedDate]',
+    flags: '-e, --updatedAt [updatedAt]',
     description: 'The date when the team was last updated',
     // defaultValue: 'default-updated-date',
   })
-  parseUpdatedDate(val: string): string {
-    return val;
+  parseUpdatedAt(val: string): string {
+    const res = validateUpdatedAt(val);
+    if (res === true) {
+      return new Date(val).toISOString();
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   @Option({
@@ -202,16 +274,24 @@ export class CreateTeamCommand extends CommandRunner {
     // defaultValue: 'default-started-by',
   })
   parseStartedBy(val: string): string {
-    return val;
+    const res = validateUserId(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   @Option({
-    flags: '-t, --startedDate [startedDate]',
+    flags: '-t, --startedAt [startedAt]',
     description: 'The date when the team was started',
     // defaultValue: 'default-started-date',
   })
-  parseStartedDate(val: string): string {
-    return val;
+  parseStartedAt(val: string): string {
+    const res = validateStartedAt(val);
+    if (res === true) {
+      return new Date(val).toISOString();
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   @Option({
@@ -220,7 +300,11 @@ export class CreateTeamCommand extends CommandRunner {
     // defaultValue: 'default-start-date',
   })
   parseStartDate(val: string): string {
-    return val;
+    const res = validateStartDate(val);
+    if (res === true) {
+      return new Date(val).toISOString();
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   @Option({
@@ -229,7 +313,11 @@ export class CreateTeamCommand extends CommandRunner {
     // defaultValue: 'default-end-date',
   })
   parseEndDate(val: string): string {
-    return val;
+    const res = validateEndDate(val);
+    if (res === true) {
+      return new Date(val).toISOString();
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   @Option({
@@ -238,27 +326,44 @@ export class CreateTeamCommand extends CommandRunner {
     // defaultValue: 'default-completed-by',
   })
   parseCompletedBy(val: string): string {
-    return val;
+    const res = validateUserId(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   @Option({
-    flags: '-p, --completedDate [completedDate]',
+    flags: '-p, --completedAt [completedAt]',
     description: 'The date when the team was completed',
     // defaultValue: 'default-completed-date',
   })
-  parseCompletedDate(val: string): string {
-    return val;
+  parseCompletedAt(val: string): string {
+    const res = validateCompletedAt(val);
+    if (res === true) {
+      return new Date(val).toISOString();
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   // ********************************************************************
+  // Update Content
 
   @Option({
     flags: '-m, --members [members]',
     description: 'The members of the team',
     // defaultValue: 'default-members',
   })
-  parseMembers(val: string): string {
-    return val;
+  parseMembers(val: string): IdUuidDTO[] {
+    const items: IdUuidDTO[] = convertStringToIdUuidArray(val);
+    if (!isValidIdUuidArray(items)) {
+      throw new Error(
+        CreateTeamCommand.name +
+          ': Invalid user ID, UUID, Status in the list: ' +
+          val,
+      );
+    }
+    return items;
   }
 
   @Option({
@@ -266,8 +371,12 @@ export class CreateTeamCommand extends CommandRunner {
     description: 'The product owner of the team',
     // defaultValue: 'default-product-owner',
   })
-  parseProductOwner(val: string): string {
-    return val;
+  parseProductOwner(val: string): IdUuidDTO {
+    const res = validateIdUuid(val);
+    if (res === true) {
+      return convertStringToIdUuidDTO(val);
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 
   @Option({
@@ -275,13 +384,20 @@ export class CreateTeamCommand extends CommandRunner {
     description: 'The scrum master of the team',
     // defaultValue: 'default-scrum-master',
   })
-  parseScrumMaster(val: string): string {
-    return val;
+  parseScrumMaster(val: string): IdUuidDTO {
+    const res = validateIdUuid(val);
+    if (res === true) {
+      return convertStringToIdUuidDTO(val);
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
+
+  // ********************************************************************
 }
 
 // npm run build
 // nestjs build
 // node ./dist/cmd.main team create --help
-// node ./dist/cmd.main team create --id ABC --name 'Team ABC' --members '["John Doe", "Jane Doe"]' --productOwner 'John Doe' --scrumMaster 'Jane Doe' --createdBy 'John Doe' --startDate '2021-01-01' --endDate '2021-12-31'
-// node ./dist/cmd.main team create --id XYZ --name 'Team XYZ' --members '["John Doe", "Jane Doe"]' --productOwner 'John Doe' --scrumMaster 'Jane Doe' --createdBy 'Jane Doe' --startDate '2022-01-01' --endDate '2022-12-31'
+// node ./dist/cmd.main team create
+// node ./dist/cmd.main team create --id 'abc.team' --name 'ABC Team' --members '[{"ID":"john.doe","UUID":"00000000-0000-0000-0000-000000000001"},{"ID":"jane.doe","UUID":"00000000-0000-0000-0000-000000000002"}]' --productOwner '{"ID":"john.doe","UUID":"00000000-0000-0000-0000-000000000001"}' --scrumMaster '{"ID":"jane.doe","UUID":"00000000-0000-0000-0000-000000000002"}' --createdBy 'john.doe' --startDate '2021-01-01' --endDate '2021-12-31'
+// node ./dist/cmd.main team create --id 'xyz.team' --name 'XYZ Team' --members 'john.doe/00000000-0000-0000-0000-000000000001,jane.doe/00000000-0000-0000-0000-000000000002' --productOwner 'john.doe/00000000-0000-0000-0000-000000000001' --scrumMaster 'jane.doe/00000000-0000-0000-0000-000000000002' --createdBy 'john.doe' --startDate '2021-01-01' --endDate '2021-12-31'

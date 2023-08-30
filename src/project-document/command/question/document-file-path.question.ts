@@ -6,13 +6,13 @@ export class DocumentFilePathQuestions {
     message: 'Enter document-file-path:',
     name: 'documentFilePath',
     type: 'input',
-    validate: (val: string) => {
-      if (val.trim() !== '' && val.trim().toLowerCase() !== 'n/a') {
-        return true;
-      } else {
-        return 'document-file-path is required';
-      }
-    },
+    // validate: (val: string) => {
+    //   if (val.trim() !== '' && val.trim().toLowerCase() !== 'n/a') {
+    //     return true;
+    //   } else {
+    //     return 'document-file-path is required';
+    //   }
+    // },
   })
   parseDocumentFilePath(val: string): string {
     return val;

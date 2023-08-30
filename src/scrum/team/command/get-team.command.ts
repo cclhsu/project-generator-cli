@@ -6,9 +6,17 @@ import {
 } from 'nest-commander';
 import { Injectable, Logger } from '@nestjs/common';
 import { TeamService } from '../team.service';
-import { TeamCommandOptionsDTO } from './dto/team-command-options.dto';
-import { GetTeamCommandOptionsDTO } from './dto/get-team-command-options.dto';
-import { UuidAnswerDTO } from '../../common/command/dto/uuid-answer.dto';
+import { GetTeamByUuidRequestDTO, TeamDTO } from '../dto';
+import { UuidAnswerDTO } from '../../../common/command/dto';
+import {
+  validateCompletedAt,
+  validateCreatedAt,
+  validateEndDate,
+  validateStartDate,
+  validateStartedAt,
+  validateUuid,
+  validateUpdatedAt,
+} from '../../../common/command/validation';
 
 @Injectable()
 @SubCommand({
@@ -29,32 +37,33 @@ export class GetTeamCommand extends CommandRunner {
     options?: Record<string, any> | undefined,
   ): Promise<void> {
     this.logger.debug('>>> Getting team');
-    // this.logger.debug(passedParams);
-    // this.logger.debug(options);
+    // this.logger.verbose('passedParam: ' + JSON.stringify(passedParams, null, 2));
+    // this.logger.verbose('options: ' + JSON.stringify(options, null, 2));
 
-    const teamCommandOptions: GetTeamCommandOptionsDTO = {
+    const team: GetTeamByUuidRequestDTO = {
       UUID: options?.uuid ?? '00000000-0000-0000-0000-000000000000',
       // metadata: null,
       // content: null,
       // ...options,
     };
 
-    while (!teamCommandOptions.UUID) {
-      teamCommandOptions.UUID = (
+    // ********************************************************************
+
+    while (!team.UUID) {
+      team.UUID = (
         await this.inquirer.ask<UuidAnswerDTO>('uuid-questions', options)
       ).UUID;
     }
 
-    this.displayResults(teamCommandOptions.UUID ?? 'N/A');
+    this.logger.verbose(`config: ${JSON.stringify(team.UUID, null, 2)}`);
 
-    const team: TeamCommandOptionsDTO = await this.teamService.getTeam(
-      teamCommandOptions.UUID,
-    );
-    console.log(JSON.stringify(team, null, 2));
-  }
-
-  displayResults(UUID: string): void {
-    console.log(`UUID: ${UUID}`);
+    try {
+      const teamDTO: TeamDTO = await this.teamService.getTeam(team.UUID);
+      console.log(JSON.stringify(teamDTO, null, 2));
+    } catch (error: any) {
+      this.logger.error(error.message);
+      this.logger.debug(error.stack);
+    }
   }
 
   @Option({
@@ -63,7 +72,11 @@ export class GetTeamCommand extends CommandRunner {
     // defaultValue: '00000000-0000-0000-0000-000000000000',
   })
   parseUUID(val: string): string {
-    return val;
+    const res = validateUuid(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 }
 

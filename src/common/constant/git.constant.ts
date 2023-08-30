@@ -1,10 +1,32 @@
-export const GIT_PROVIDER_TYPES = [
+export type GIT_PROVIDER_TYPES =
+  | 'github.com'
+  | 'gitlab.com'
+  | 'bitbucket.org'
+  | 'local'
+  | 'mypProject';
+export const GIT_PROVIDER_TYPE_ARRAY = [
   'github.com',
   'gitlab.com',
   'bitbucket.org',
   'local',
   'mypProject',
 ];
+export const DEFAULT_GIT_PROVIDER = 'local'; // 'github.com' | 'myProject' | 'local'
+export enum GIT_PROVIDER_ENUM {
+  GITHUB = 'GitHub',
+  GITLAB = 'GitLab',
+  BITBUCKET = 'Bitbucket',
+  LOCAL = 'Local',
+  MYPROJECT = 'MyProject',
+}
+export const GIT_PROVIDER_MAP = {
+  [GIT_PROVIDER_ENUM.GITHUB]: 'github.com',
+  [GIT_PROVIDER_ENUM.GITLAB]: 'gitlab.com',
+  [GIT_PROVIDER_ENUM.BITBUCKET]: 'bitbucket.org',
+  [GIT_PROVIDER_ENUM.LOCAL]: 'local',
+  [GIT_PROVIDER_ENUM.MYPROJECT]: 'mypProject',
+};
+
 export const GIT_PROVIDER_URLS = {
   'github.com': 'https://github.com',
   'gitlab.com': 'https://gitlab.com',
@@ -12,6 +34,8 @@ export const GIT_PROVIDER_URLS = {
   mypProject: 'http://localhost:3000',
   local: 'http://localhost:3000',
 };
+export const DEFAULT_GIT_PROVIDER_URL = GIT_PROVIDER_URLS[DEFAULT_GIT_PROVIDER];
+
 export const GIT_PROVIDER_API_URLS = {
   'github.com': 'https://api.github.com',
   'gitlab.com': 'https://gitlab.com/api/v4',
@@ -19,13 +43,11 @@ export const GIT_PROVIDER_API_URLS = {
   mypProject: 'http://localhost:3000/api/v1',
   local: 'http://localhost:3000/api/v1',
 };
-export const DEFAULT_GIT_PROVIDER = 'local'; // 'github.com' | 'myProject' | 'local'
-export const DEFAULT_GIT_PROVIDER_URL = GIT_PROVIDER_URLS[DEFAULT_GIT_PROVIDER];
 export const DEFAULT_GIT_PROVIDER_API_URL =
   GIT_PROVIDER_API_URLS[DEFAULT_GIT_PROVIDER];
 
 export const DEFAULT_INIT_BRANCH = 'main';
-export const DEFAULT_INIT_COMMIT_MESSAGE = '[PPP-XXXX] Initial commit';
+export const DEFAULT_INIT_COMMIT_MSG = '[PPP-XXXX] chore: Initial commit';
 export const DEFAULT_DEVELOP_BRANCH = 'develop';
 export const DEFAULT_FEATURE_BRANCH_PREFIX = 'feature';
 export const DEFAULT_RELEASE_BRANCH_PREFIX = 'release';

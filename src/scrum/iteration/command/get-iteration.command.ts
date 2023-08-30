@@ -6,9 +6,17 @@ import {
 } from 'nest-commander';
 import { Injectable, Logger } from '@nestjs/common';
 import { IterationService } from '../iteration.service';
-import { GetIterationCommandOptionsDTO } from './dto/get-iteration-command-options.dto';
-import { IterationCommandOptionsDTO } from './dto/iteration-command-options.dto';
-import { UuidAnswerDTO } from '../../common/command/dto/uuid-answer.dto';
+import { UuidAnswerDTO } from '../../../common/command/dto';
+import {
+  validateCompletedAt,
+  validateCreatedAt,
+  validateEndDate,
+  validateStartDate,
+  validateStartedAt,
+  validateUuid,
+  validateUpdatedAt,
+} from '../../../common/command/validation';
+import { GetIterationByUuidRequestDTO, IterationDTO } from '../dto';
 
 @Injectable()
 @SubCommand({
@@ -29,31 +37,32 @@ export class GetIterationCommand extends CommandRunner {
     options?: Record<string, any> | undefined,
   ): Promise<void> {
     this.logger.debug('>>> Getting iteration');
-    // this.logger.debug(passedParams);
-    // this.logger.debug(options);
+    // this.logger.verbose('passedParam: ' + JSON.stringify(passedParams, null, 2));
+    // this.logger.verbose('options: ' + JSON.stringify(options, null, 2));
 
-    const iterationCommandOptions: GetIterationCommandOptionsDTO = {
+    const iteration: GetIterationByUuidRequestDTO = {
       UUID: options?.uuid ?? '00000000-0000-0000-0000-000000000000',
       // metadata: null,
       // content: null,
       // ...options,
     };
 
-    while (!iterationCommandOptions.UUID) {
-      iterationCommandOptions.UUID = (
+    // ********************************************************************
+
+    while (!iteration.UUID) {
+      iteration.UUID = (
         await this.inquirer.ask<UuidAnswerDTO>('uuid-questions', options)
       ).UUID;
     }
-
-    this.displayResults(iterationCommandOptions.UUID ?? 'N/A');
-
-    const iteration: IterationCommandOptionsDTO =
-      await this.iterationService.getIteration(iterationCommandOptions.UUID);
-    console.log(JSON.stringify(iteration, null, 2));
-  }
-
-  displayResults(UUID: string): void {
-    console.log(`UUID: ${UUID}`);
+    this.logger.verbose(`config: ${JSON.stringify(iteration.UUID, null, 2)}`);
+    try {
+      const iterationDTO: IterationDTO =
+        await this.iterationService.getIteration(iteration.UUID);
+      console.log(JSON.stringify(iterationDTO, null, 2));
+    } catch (error: any) {
+      this.logger.error(error.message);
+      this.logger.debug(error.stack);
+    }
   }
 
   @Option({
@@ -62,7 +71,11 @@ export class GetIterationCommand extends CommandRunner {
     // defaultValue: '00000000-0000-0000-0000-000000000000',
   })
   parseUUID(val: string): string {
-    return val;
+    const res = validateUuid(val);
+    if (res === true) {
+      return val;
+    }
+    throw new Error(res + ': ' + val + '\n');
   }
 }
 

@@ -1,7 +1,7 @@
 import { CommandRunner, InquirerService, SubCommand } from 'nest-commander';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '../config.service';
-import { ProjectCommonCommandOptionsDTO } from 'src/common/command/dto/project-common-command-options.dto';
+import { ProjectCommonCommandOptionsDTO } from '../../common/command/dto/project-common-command-options.dto';
 
 @Injectable()
 @SubCommand({
@@ -29,7 +29,11 @@ export class ListConfigsCommand extends CommandRunner {
       ...options,
     };
 
-    this.configService.listConfigs();
+    try {
+      await this.configService.listConfigs();
+    } catch (error: any) {
+      console.log(error.message);
+    }
   }
 }
 

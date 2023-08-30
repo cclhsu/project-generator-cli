@@ -1,5 +1,5 @@
 import { Question, QuestionSet } from 'nest-commander';
-import { DOCUMENT_TEMPLATE_TYPES } from 'src/common/constant/document.constant';
+import { DOCUMENT_TEMPLATE_TYPES } from '../../../common/constant';
 
 @QuestionSet({ name: 'document-type-questions' })
 export class DocumentTypeQuestions {

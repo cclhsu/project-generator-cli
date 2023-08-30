@@ -1,7 +1,7 @@
 import { InquirerService } from 'nest-commander';
-import { ConfigService } from 'src/config/config.service';
-import { ProjectSuiteCommandOptionsDTO } from 'src/project-suite/command/dto/project-suite-command-options.dto';
-import { TemplateRootAnswerDTO } from 'src/common/command/dto/template-root-answer.dto';
+import { ConfigService } from '../../config/config.service';
+import { ProjectSuiteCommandOptionsDTO } from '../../project-suite/command/dto/project-suite-command-options.dto';
+import { TemplateRootAnswerDTO } from '../../common/command/dto/template-root-answer.dto';
 import { ProjectSuiteVariablesFilePathAnswerDTO } from './dto/project-suite-variables-file-path-answer.dto';
 import { ProjectSuiteVariablesFileNameAnswerDTO } from './dto/project-suite-variables-file-name-answer.dto';
 import { ProjectSuiteTypeAnswerDTO } from './dto/project-suite-type-answer.dto';
